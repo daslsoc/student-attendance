@@ -3,16 +3,14 @@
 namespace App\Http\Controllers;
 
 use App\Models\Subject;
-use App\Models\ClassModel;
 use Illuminate\Http\Request;
 
 class DashboardController extends Controller
 {
-
     public function summary()
     {
         $today = now()->toDateString();
-        # SELECT subject_id, class_id, count( DISTINCT subject_id, class_id, student_number) as `count` FROM `attendances` group by subject_id, class_id;
+        // SELECT subject_id, class_id, count( DISTINCT subject_id, class_id, student_number) as `count` FROM `attendances` group by subject_id, class_id;
         $attendanceSummary = \App\Models\Attendance::select('subject_id', 'class_id', \DB::raw('COUNT(DISTINCT subject_id, class_id, student_number) as count'))
             ->whereDate('date', $today)
             ->groupBy('subject_id', 'class_id')
@@ -21,12 +19,13 @@ class DashboardController extends Controller
         $summary = $attendanceSummary->map(function ($item) {
             $subject = \App\Models\Subject::find($item->subject_id);
             $class = \App\Models\ClassModel::find($item->class_id);
+
             return [
-                'subject_id'   => $item->subject_id,
-                'class_id'     => $item->class_id,
+                'subject_id' => $item->subject_id,
+                'class_id' => $item->class_id,
                 'subject_name' => $subject ? $subject->name : 'Unknown',
-                'class_name'   => $class ? $class->name : 'Unknown',
-                'count'        => $item->count,
+                'class_name' => $class ? $class->name : 'Unknown',
+                'count' => $item->count,
             ];
         });
 
@@ -36,8 +35,8 @@ class DashboardController extends Controller
     public function details(Request $request)
     {
         $subjectId = $request->query('subject_id');
-        $classId   = $request->query('class_id');
-        if (!$subjectId || !$classId) {
+        $classId = $request->query('class_id');
+        if (! $subjectId || ! $classId) {
             return redirect()->route('attendance.summary')->withErrors('Subject and class are required.');
         }
         $today = now()->toDateString();

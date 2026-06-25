@@ -9,7 +9,7 @@ use Illuminate\Support\Facades\Log;
 class BookDistribution extends Model
 {
     use HasFactory;
-    
+
     protected $fillable = ['subject_id', 'class_id', 'student_number', 'teacher_id'];
 
     /**

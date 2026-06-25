@@ -22,7 +22,7 @@ class User extends Authenticatable
         'email',
         'password',
         'login_token',
-        'login_token_expires_at'
+        'login_token_expires_at',
     ];
 
     /**
@@ -34,7 +34,7 @@ class User extends Authenticatable
         'password',
         'remember_token',
         'login_token',
-        'login_token_expires_at'
+        'login_token_expires_at',
     ];
 
     /**

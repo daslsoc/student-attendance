@@ -2,14 +2,14 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Log;
 
 class Subject extends Model
 {
     use HasFactory;
-    
+
     protected $fillable = ['name'];
 
     /**
@@ -26,5 +26,5 @@ class Subject extends Model
         static::deleted(function ($model) {
             Log::info('Subject deleted', $model->toArray());
         });
-    }    
+    }
 }

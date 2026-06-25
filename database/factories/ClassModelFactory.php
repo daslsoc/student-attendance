@@ -2,8 +2,8 @@
 
 namespace Database\Factories;
 
-use Illuminate\Database\Eloquent\Factories\Factory;
 use App\Models\ClassModel;
+use Illuminate\Database\Eloquent\Factories\Factory;
 
 class ClassModelFactory extends Factory
 {
@@ -12,7 +12,7 @@ class ClassModelFactory extends Factory
     public function definition()
     {
         return [
-            'name' => 'Class ' . strtoupper($this->faker->randomLetter),
+            'name' => 'Class '.strtoupper($this->faker->randomLetter),
         ];
     }
 }
