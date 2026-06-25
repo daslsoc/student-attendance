@@ -18,6 +18,48 @@ Schema at a glance:
 - `book_distributions` — one row per student given books, per year + subject +
   class + teacher.
 
+## Seed demo / sample data
+
+`DemoDataSeeder` loads a couple of subjects, a few classes each, eight students
+enrolled across them, and **today's** attendance for some of them — enough to
+click around the forms and the summary page. It is **idempotent** (every row is
+`firstOrCreate`d, so re-running never duplicates) and is **not** wired into
+`DatabaseSeeder`, so a bare `db:seed` won't run it — you opt in by name.
+
+```bash
+# Docker dev stack (PHP runs in the app container):
+docker compose exec app php artisan db:seed --class=DemoDataSeeder
+
+# ...or via the Makefile shortcut if you're already using make:
+make artisan ARGS="db:seed --class=DemoDataSeeder"
+
+# Outside Docker (PHP on the host):
+php artisan db:seed --class=DemoDataSeeder
+```
+
+Notes:
+
+- It seeds whatever database the app is configured to use. In the Docker stack
+  the `app` container connects to **MySQL `attendance_db`** (the `db` service) —
+  the same DB the running site reads — so the data shows up on the site
+  immediately. (The host `.env` points at the dev sqlite file, which is a
+  *different* database; run the seeder where the app actually runs.)
+- It creates a **Demo Teacher** (`demo.teacher@example.com`) to own the
+  attendance rows. Log in as that teacher via the magic-link flow to see the
+  data. Locally, if `MAIL_MAILER=log`, the login link is written to
+  `storage/logs/laravel.log` instead of being emailed.
+- The attendance is deliberately partial (e.g. 2 of 3 present) so the summary
+  page looks realistic.
+- Safe to re-run any time to top up a freshly migrated database.
+
+To start completely fresh first (dev only — this **drops every table**, never
+run it against production):
+
+```bash
+docker compose exec app php artisan migrate:fresh
+docker compose exec app php artisan db:seed --class=DemoDataSeeder
+```
+
 ## Create a teacher (so they can log in)
 
 ```php

@@ -41,8 +41,16 @@ make db-setup      # create + migrate attendance_test and attendance_dusk
 make up            # start app + db + nginx
 ```
 
-Seed some data to click around (see [docs/setup-history.md](docs/setup-history.md)
-for a ready-made snippet), or load the real roster from `production_seeding.sql`.
+Seed some demo data to click around:
+
+```bash
+make artisan ARGS="db:seed --class=DemoDataSeeder"
+```
+
+That loads a couple of subjects, a few classes each, students, and today's
+attendance — idempotent, so it's safe to re-run. See
+[docs/operations.md](docs/operations.md#seed-demo--sample-data) for details, or
+load the real roster from `production_seeding.sql`.
 
 ## Testing
 
