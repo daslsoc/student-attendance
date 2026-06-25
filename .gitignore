@@ -38,3 +38,5 @@ auth.json
 /.nova
 /.vscode
 /.zed
+
+production_seeding.sql

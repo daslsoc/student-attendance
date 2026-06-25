@@ -1,66 +1,82 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+# All commands used to setup this repository
+git clone https://github.com/daslsoc/student-attendance.git
+mv student-attendance/ student-attendance1
+docker run --mount type=bind,src=./,dst=/app composer:2 create-project laravel/laravel student-attendance
+sudo mv student-attendance1/.git/ student-attendance
+sudo mv student-attendance1/LICENSE student-attendance
+rmdir student-attendance1
 
-## About Laravel
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
 
-## Learning Laravel
+docker run --mount type=bind,src=./,dst=/var/www/html php:8-fpm php artisan make:migration create_students_table --create=students
+docker run --mount type=bind,src=./,dst=/var/www/html php:8-fpm php artisan make:migration create_subjects_table --create=subjects
+docker run --mount type=bind,src=./,dst=/var/www/html php:8-fpm php artisan make:migration create_classes_table --create=classes
+docker run --mount type=bind,src=./,dst=/var/www/html php:8-fpm php artisan make:migration create_attendance_table --create=attendance
+docker run --mount type=bind,src=./,dst=/var/www/html php:8-fpm php artisan migrate
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
+docker run --mount type=bind,src=./,dst=/var/www/html php:8-fpm php artisan make:model Student
+docker run --mount type=bind,src=./,dst=/var/www/html php:8-fpm php artisan make:model Subject
+docker run --mount type=bind,src=./,dst=/var/www/html php:8-fpm php artisan make:model ClassModel
+docker run --mount type=bind,src=./,dst=/var/www/html php:8-fpm php artisan make:model Attendance
+docker run --mount type=bind,src=./,dst=/var/www/html php:8-fpm php artisan make:model Enrollment -m
 
-You may also try the [Laravel Bootcamp](https://bootcamp.laravel.com), where you will be guided through building a modern Laravel application from scratch.
+docker run --mount type=bind,src=./,dst=/var/www/html php:8-fpm php artisan make:controller AuthController
+docker run --mount type=bind,src=./,dst=/var/www/html php:8-fpm php artisan make:controller DashboardController
+docker run --mount type=bind,src=./,dst=/var/www/html php:8-fpm php artisan make:controller AttendanceController
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+docker run --mount type=bind,src=./,dst=/var/www/html php:8-fpm php artisan make:mail LoginLinkMail --markdown=emails.loginlink
 
-## Laravel Sponsors
+docker run --mount type=bind,src=./,dst=/var/www/html php:8-fpm php artisan make:middleware EnsureTeacherAuthenticated
 
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the [Laravel Partners program](https://partners.laravel.com).
+docker run --mount type=bind,src=./,dst=/var/www/html php:8-fpm php artisan make:factory SubjectFactory --model=Subject
+docker run --mount type=bind,src=./,dst=/var/www/html php:8-fpm php artisan make:factory ClassModelFactory --model=ClassModel
 
-### Premium Partners
+docker run --mount type=bind,src=./,dst=/var/www/html php:8-fpm php artisan make:model BookDistribution -m
+docker run --mount type=bind,src=./,dst=/var/www/html php:8-fpm php artisan make:controller BookDistributionController
 
-- **[Vehikl](https://vehikl.com/)**
-- **[Tighten Co.](https://tighten.co)**
-- **[WebReinvent](https://webreinvent.com/)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel/)**
-- **[Cyber-Duck](https://cyber-duck.co.uk)**
-- **[DevSquad](https://devsquad.com/hire-laravel-developers)**
-- **[Jump24](https://jump24.co.uk)**
-- **[Redberry](https://redberry.international/laravel/)**
-- **[Active Logic](https://activelogic.com)**
-- **[byte5](https://byte5.de)**
-- **[OP.GG](https://op.gg)**
+docker run --mount type=bind,src=./,dst=/var/www/html php:8-fpm php artisan make:migration add_login_token_fields_to_users_table --table=users
 
-## Contributing
+docker-compose up --build
+docker run --mount type=bind,src=./,dst=/var/www/html php:8-fpm php artisan migrate --seed
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+docker run --mount type=bind,src=./,dst=/var/www/html php:8-fpm php artisan config:clear
+docker run --mount type=bind,src=./,dst=/var/www/html php:8-fpm php artisan view:clear
+docker run --mount type=bind,src=./,dst=/var/www/html php:8-fpm php artisan cache:clear
 
-## Code of Conduct
+# Custom Seed
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+\App\Models\Subject::create(['name' => 'Buddhism']);
+\App\Models\Subject::create(['name' => 'Sinhala']);
 
-## Security Vulnerabilities
+\App\Models\ClassModel::create(['name' => 'Class 1 (A)']);
+\App\Models\ClassModel::create(['name' => 'Class 1 (B)']);
+\App\Models\ClassModel::create(['name' => 'Class 2 (C)']);
+\App\Models\ClassModel::create(['name' => 'Class 3 (D)']);
+\App\Models\ClassModel::create(['name' => 'Class 4 (E)']);
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+\App\Models\Student::create(['student_number' => '1', 'first_name' => 'Jo', 'last_name' => 'Blogs']);
+\App\Models\Student::create(['student_number' => '2', 'first_name' => 'Jane', 'last_name' => 'Blogs']);
+\App\Models\Enrollment::create(['student_number' => '1', 'class_id' => 1, 'subject_id' => 1]);
+\App\Models\Enrollment::create(['student_number' => '1', 'class_id' => 1, 'subject_id' => 2]);
+\App\Models\Enrollment::create(['student_number' => '2', 'class_id' => 2, 'subject_id' => 1]);
 
-## License
+SELECT `enrollments`.student_number as "Student #", students.first_name, students.last_name, classes.name as "Class"
+FROM `enrollments`, students, classes
+where `enrollments`.`student_number`= students.`student_number` and subject_id=1 and classes.id=`enrollments`.class_id;
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+* list of students numbers and their names
+SELECT student_number, concat(first_name," ",last_name) FROM `students` order by student_number+0;
+
+* distinct dates
+select DISTINCT date(`created_at`) from attendances order by date(`created_at`) asc
+
+* student attendance dates
+SELECT distinct `attendances`.student_number, concat(`students`.first_name, " ", `students`.last_name) as "Name", date(`attendances`.`created_at`)
+FROM `attendances`, `students`
+where `students`.student_number=`attendances`.student_number
+order by date(`created_at`) asc;
+
+* intake has to also cover a mature age student including drop down lists
