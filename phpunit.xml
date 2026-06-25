@@ -3,6 +3,7 @@
          xsi:noNamespaceSchemaLocation="vendor/phpunit/phpunit/phpunit.xsd"
          bootstrap="vendor/autoload.php"
          colors="true"
+         cacheDirectory=".phpunit.cache"
 >
     <testsuites>
         <testsuite name="Unit">
@@ -18,16 +19,45 @@
         </include>
     </source>
     <php>
-        <env name="APP_ENV" value="testing"/>
-        <env name="APP_MAINTENANCE_DRIVER" value="file"/>
-        <env name="BCRYPT_ROUNDS" value="4"/>
-        <env name="CACHE_STORE" value="array"/>
-        <!-- <env name="DB_CONNECTION" value="sqlite"/> -->
-        <!-- <env name="DB_DATABASE" value=":memory:"/> -->
-        <env name="MAIL_MAILER" value="array"/>
-        <env name="PULSE_ENABLED" value="false"/>
-        <env name="QUEUE_CONNECTION" value="sync"/>
-        <env name="SESSION_DRIVER" value="array"/>
-        <env name="TELESCOPE_ENABLED" value="false"/>
+        <!--
+            IMPORTANT: these MUST be <server> tags with force="true".
+            PHPUnit 11 writes <env> values into $_ENV but NOT $_SERVER, and
+            Laravel's Dotenv repository reads $_SERVER before $_ENV. So plain
+            <env> overrides are ignored by Laravel and the test process falls
+            back to the .env DB_DATABASE -> the DEV database (the sqlite file
+            locally, or whatever the server .env points at), which
+            RefreshDatabase then wipes. force="true" on a <server> tag is the
+            guard rail that pins every run to the dedicated test database.
+        -->
+        <server name="APP_ENV" value="testing" force="true"/>
+        <server name="APP_MAINTENANCE_DRIVER" value="file" force="true"/>
+        <server name="BCRYPT_ROUNDS" value="4" force="true"/>
+        <server name="CACHE_STORE" value="array" force="true"/>
+        <server name="MAIL_MAILER" value="array" force="true"/>
+        <server name="QUEUE_CONNECTION" value="sync" force="true"/>
+        <server name="SESSION_DRIVER" value="array" force="true"/>
+        <server name="PULSE_ENABLED" value="false" force="true"/>
+        <server name="TELESCOPE_ENABLED" value="false" force="true"/>
+
+        <!-- Guard rail: pin the connection + database so a stray run can never
+             touch the dev database (the sqlite file or the prod MySQL). The
+             code guard in tests/TestCase.php enforces the same allowlist even
+             if a stale cached config is present. -->
+        <server name="DB_CONNECTION" value="mysql" force="true"/>
+        <server name="DB_DATABASE" value="attendance_test" force="true"/>
+
+        <!-- Connection coordinates are unforced defaults: the dev `app`
+             container already exports DB_HOST/DB_USERNAME/DB_PASSWORD, and CI
+             overrides them via the workflow's step env. They must NOT be
+             forced. -->
+        <server name="DB_HOST" value="db"/>
+        <server name="DB_PORT" value="3306"/>
+        <server name="DB_USERNAME" value="root"/>
+        <server name="DB_PASSWORD" value="secret"/>
+
+        <!-- Custom app config pinned so config('custom.*') resolves
+             deterministically under test (the login-token expiry window is
+             read by AuthController). -->
+        <server name="TOKEN_EXPIRY_HOURS" value="4" force="true"/>
     </php>
 </phpunit>
