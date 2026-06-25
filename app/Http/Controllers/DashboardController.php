@@ -163,4 +163,154 @@ class DashboardController extends Controller
             'subjects', 'subject', 'students', 'dates', 'present', 'totals'
         ));
     }
+
+    /**
+     * Editable grid scoped to one subject + class: tick the dates each
+     * enrolled student attended and save in one go. Useful for back-filling
+     * students who were missed for several sessions. An optional add_date
+     * query param adds an empty column for a session that has no records yet.
+     */
+    public function editGrid(Request $request)
+    {
+        $subjects = Subject::orderBy('name')->get();
+        $classes = ClassModel::orderBy('name')->get();
+
+        $subjectId = $request->query('subject_id');
+        $classId = $request->query('class_id');
+        $subject = $subjectId ? Subject::find($subjectId) : null;
+        $class = $classId ? ClassModel::find($classId) : null;
+
+        $students = collect();
+        $dates = collect();
+        $present = [];   // [student_number][date] => true
+
+        if ($subject && $class) {
+            $year = now()->year;
+
+            $studentNumbers = Enrollment::where('subject_id', $subject->id)
+                ->where('class_id', $class->id)
+                ->pluck('student_number')
+                ->unique()
+                ->values();
+            $students = Student::whereIn('student_number', $studentNumbers)
+                ->orderBy('first_name')
+                ->orderBy('last_name')
+                ->get();
+
+            $dateSet = Attendance::where('subject_id', $subject->id)
+                ->where('class_id', $class->id)
+                ->whereYear('date', $year)
+                ->select('date')
+                ->distinct()
+                ->pluck('date')
+                ->map(fn ($d) => Carbon::parse($d)->toDateString());
+
+            // Optional extra column for a session not yet recorded.
+            $addDate = $this->normaliseDate($request->query('add_date'), $year);
+            if ($addDate) {
+                $dateSet->push($addDate);
+            }
+
+            $dates = $dateSet->unique()->sort()->values();
+
+            $rows = Attendance::where('subject_id', $subject->id)
+                ->where('class_id', $class->id)
+                ->whereYear('date', $year)
+                ->get(['student_number', 'date']);
+            foreach ($rows as $row) {
+                $present[$row->student_number][Carbon::parse($row->date)->toDateString()] = true;
+            }
+        }
+
+        return view('dashboard.edit', compact(
+            'subjects', 'classes', 'subject', 'class', 'students', 'dates', 'present'
+        ));
+    }
+
+    /**
+     * Reconcile the editable grid: for each enrolled student and each date
+     * column that was shown, create the attendance row if it's now ticked and
+     * delete it if it's now unticked. Only the submitted (subject, class,
+     * students, dates) are ever touched.
+     */
+    public function updateGrid(Request $request)
+    {
+        $validated = $request->validate([
+            'subject_id' => ['required', 'exists:subjects,id'],
+            'class_id' => ['required', 'exists:classes,id'],
+            'dates' => ['array'],
+            'dates.*' => ['date_format:Y-m-d'],
+            'present' => ['array'],
+        ]);
+
+        $subjectId = (int) $validated['subject_id'];
+        $classId = (int) $validated['class_id'];
+        $teacherId = $request->session()->get('teacher_id');
+        $year = now()->year;
+
+        // The columns we're allowed to touch: submitted dates within this year,
+        // never in the future.
+        $dates = collect($validated['dates'] ?? [])
+            ->map(fn ($d) => $this->normaliseDate($d, $year))
+            ->filter()
+            ->unique()
+            ->values();
+
+        $present = $request->input('present', []);
+
+        $studentNumbers = Enrollment::where('subject_id', $subjectId)
+            ->where('class_id', $classId)
+            ->pluck('student_number')
+            ->unique();
+
+        foreach ($studentNumbers as $studentNumber) {
+            foreach ($dates as $date) {
+                $shouldBePresent = isset($present[$studentNumber][$date]);
+                $existing = Attendance::where('subject_id', $subjectId)
+                    ->where('class_id', $classId)
+                    ->where('student_number', $studentNumber)
+                    ->whereDate('date', $date)
+                    ->first();
+
+                if ($shouldBePresent && ! $existing) {
+                    Attendance::create([
+                        'date' => $date,
+                        'subject_id' => $subjectId,
+                        'class_id' => $classId,
+                        'student_number' => $studentNumber,
+                        'teacher_id' => $teacherId,
+                    ]);
+                } elseif (! $shouldBePresent && $existing) {
+                    $existing->delete();
+                }
+            }
+        }
+
+        return redirect()
+            ->route('attendance.edit', ['subject_id' => $subjectId, 'class_id' => $classId])
+            ->with('message', 'Attendance updated.');
+    }
+
+    /**
+     * Return a Y-m-d string for a date that is parseable, in the given year,
+     * and not in the future — otherwise null.
+     */
+    private function normaliseDate(?string $value, int $year): ?string
+    {
+        if (! $value) {
+            return null;
+        }
+
+        try {
+            $date = Carbon::parse($value);
+        } catch (\Exception $e) {
+            return null;
+        }
+
+        if ($date->year !== $year || $date->isAfter(now())) {
+            return null;
+        }
+
+        return $date->toDateString();
+    }
 }

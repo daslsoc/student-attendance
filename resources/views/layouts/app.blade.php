@@ -31,6 +31,7 @@
           <a class="nav-link" aria-current="page" href="{{route('book_distribution.selection')}}">Book Distribution</a>
           <a class="nav-link" aria-current="page" href="{{route('attendance.summary')}}">Summary</a>
           <a class="nav-link" aria-current="page" href="{{route('attendance.grid')}}">Attendance Grid</a>
+          <a class="nav-link" aria-current="page" href="{{route('attendance.edit')}}">Edit Attendance</a>
         </div>
       </div>
     </div>
