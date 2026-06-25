@@ -24,6 +24,8 @@ Homestead.json
 /.phpunit.cache
 
 coverage
+/tests/coverage
+/tests/js-coverage
 laravel_db
 /public/build
 /storage/pail

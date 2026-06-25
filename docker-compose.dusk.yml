@@ -1,0 +1,26 @@
+# Dusk override stack: layered on top of docker-compose.yml.
+#
+#   docker compose -f docker-compose.yml -f docker-compose.dusk.yml ...
+#
+# It adds a headless Chromium (Selenium) container and repoints the app at the
+# dedicated `attendance_dusk` database, so browser tests never touch dev data.
+# Both the Dusk test process AND the nginx-served app run through the `app`
+# service, so this single DB override keeps them in sync during a run.
+services:
+  app:
+    environment:
+      APP_ENV: dusk
+      APP_URL: http://nginx
+      DB_DATABASE: attendance_dusk
+      DUSK_DRIVER_URL: http://selenium:4444
+      SESSION_DRIVER: file
+      CACHE_STORE: file
+      QUEUE_CONNECTION: sync
+
+  selenium:
+    image: selenium/standalone-chromium:latest
+    shm_size: '2gb'
+    depends_on:
+      - nginx
+    networks:
+      - attendance_net
