@@ -8,6 +8,10 @@
 
   <!-- Bootstrap CSS -->
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+
+  <!-- App JS bundle (student-selector behaviour). Built with `npm run build`;
+       see docs/deployment.md — public/build is gitignored and must be uploaded. -->
+  @vite(['resources/js/app.js'])
 </head>
 
 <body>

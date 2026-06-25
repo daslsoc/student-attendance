@@ -8,7 +8,11 @@
             @csrf
             <input type="hidden" name="subject_id" value="{{ $subjectId }}">
             <input type="hidden" name="class_id" value="{{ $classId }}">
-            <input type="hidden" name="present_students" id="present_students" value="[]">
+            <input type="hidden" name="present_students" id="present_students"
+                   data-selection-input
+                   data-selected-class="btn-success"
+                   data-unselected-class="btn-outline-primary"
+                   value="{{ json_encode($attendedStudents) }}">
             <div class="mb-3">
                 <div class="d-flex flex-wrap gap-2">
                     @foreach($students as $student)
@@ -27,27 +31,5 @@
 </div>
 @endsection
 
-@section('scripts')
-<script>
-    // Pre-populate with already attended students.
-    let presentStudents = {!! json_encode($attendedStudents) !!};
-    document.getElementById('present_students').value = JSON.stringify(presentStudents);
-    
-    document.querySelectorAll('.student-btn').forEach(function(btn) {
-        btn.addEventListener('click', function() {
-            const studentId = this.getAttribute('data-student');
-            // Toggle selection: add if not present, remove if already selected.
-            if (presentStudents.includes(studentId)) {
-                presentStudents = presentStudents.filter(id => id !== studentId);
-                this.classList.remove('btn-success');
-                this.classList.add('btn-outline-primary');
-            } else {
-                presentStudents.push(studentId);
-                this.classList.remove('btn-outline-primary');
-                this.classList.add('btn-success');
-            }
-            document.getElementById('present_students').value = JSON.stringify(presentStudents);
-        });
-    });
-</script>
-@endsection
+{{-- Toggle behaviour lives in resources/js/studentSelector.js (bundled via
+     @vite in the layout) and is unit-tested in tests/js. --}}
