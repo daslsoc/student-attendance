@@ -2,37 +2,81 @@
 
 namespace Tests\Feature;
 
-use Illuminate\Foundation\Testing\RefreshDatabase;
-use Tests\TestCase;
-use Illuminate\Support\Facades\Mail;
 use App\Mail\LoginLinkMail;
+use App\Models\User;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Mail;
+use Tests\TestCase;
 
 class AuthTest extends TestCase
 {
     use RefreshDatabase;
 
-    /** @test */
-    public function login_form_is_accessible()
+    public function test_login_form_is_accessible(): void
     {
         $response = $this->get(route('login.form'));
+
         $response->assertStatus(200);
         $response->assertSee('Teacher Login');
     }
 
-    /** @test */
-    public function can_send_login_link()
+    public function test_send_login_link_emails_a_known_teacher_and_stores_a_token(): void
     {
         Mail::fake();
+        $teacher = User::factory()->create(['email' => 'teacher@example.com']);
+
         $response = $this->post(route('login.send'), ['email' => 'teacher@example.com']);
+
         $response->assertSessionHas('message');
         Mail::assertSent(LoginLinkMail::class);
+
+        $teacher->refresh();
+        $this->assertNotNull($teacher->login_token);
+        $this->assertNotNull($teacher->login_token_expires_at);
     }
 
-    /** @test */
-    public function token_login_redirects_to_dashboard()
+    public function test_send_login_link_rejects_an_unknown_email(): void
     {
-        session(['login_token' => 'testtoken']);
-        $response = $this->get(route('login.token', ['token' => 'testtoken']));
-        $response->assertRedirect(route('dashboard'));
+        Mail::fake();
+
+        $response = $this->post(route('login.send'), ['email' => 'nobody@example.com']);
+
+        $response->assertSessionHasErrors();
+        Mail::assertNothingSent();
+    }
+
+    public function test_valid_token_logs_the_teacher_in_and_redirects_to_selection(): void
+    {
+        $teacher = User::factory()->create([
+            'login_token' => 'valid-token',
+            'login_token_expires_at' => now()->addHour(),
+        ]);
+
+        $response = $this->get(route('login.token', ['token' => 'valid-token']));
+
+        $response->assertRedirect(route('attendance.selection'));
+        $this->assertTrue(session('teacher_logged_in'));
+        $this->assertSame($teacher->id, session('teacher_id'));
+    }
+
+    public function test_expired_token_is_rejected(): void
+    {
+        User::factory()->create([
+            'login_token' => 'stale-token',
+            'login_token_expires_at' => now()->subHour(),
+        ]);
+
+        $response = $this->get(route('login.token', ['token' => 'stale-token']));
+
+        $response->assertRedirect('login');
+        $response->assertSessionHasErrors();
+        $this->assertNull(session('teacher_logged_in'));
+    }
+
+    public function test_protected_route_redirects_a_guest_to_the_login_form(): void
+    {
+        $response = $this->get(route('attendance.selection'));
+
+        $response->assertRedirect(route('login.form'));
     }
 }
