@@ -26,6 +26,7 @@ Route::middleware([EnsureTeacherAuthenticated::class])->group(function () {
 
     Route::get('/attendance-summary', [DashboardController::class, 'summary'])->name('attendance.summary');
     Route::get('/attendance-details', [DashboardController::class, 'details'])->name('attendance.details');
+    Route::get('/attendance-grid', [DashboardController::class, 'grid'])->name('attendance.grid');
 });
 
 Route::get('/', function () {
