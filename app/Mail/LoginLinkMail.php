@@ -19,7 +19,8 @@ class LoginLinkMail extends Mailable
 
     public function build()
     {
-        return $this->subject('Your Login Link')
+	$dateFormat = date('Y-m-d');
+        return $this->subject('Attendance Login Link - '. $dateFormat)
                     ->markdown('emails.loginlink')
                     ->with('loginLink', $this->loginLink);
     }
