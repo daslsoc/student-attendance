@@ -80,6 +80,9 @@ coverage: db-up ## Run PHPUnit with HTML coverage. Opens tests/coverage/index.ht
 	@echo ""
 	@echo "Coverage report: file://$(PWD)/tests/coverage/index.html"
 
+.PHONY: coverage-all
+coverage-all: coverage js-coverage ## Run both PHPUnit and Vitest coverage.
+
 .PHONY: js-test
 js-test: ## Run JS (Vitest) tests against tests/js/
 	npm run test
