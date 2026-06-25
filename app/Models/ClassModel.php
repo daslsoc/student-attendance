@@ -20,13 +20,13 @@ class ClassModel extends Model
     protected static function booted()
     {
         static::created(function ($model) {
-            Log::info('Class created', $model->toArray());
+            Log::info('Class created', $model->only(['id', 'name']));
         });
         static::updated(function ($model) {
-            Log::info('Class updated', $model->toArray());
+            Log::info('Class updated', $model->only(['id', 'name']));
         });
         static::deleted(function ($model) {
-            Log::info('Class deleted', $model->toArray());
+            Log::info('Class deleted', $model->only(['id', 'name']));
         });
     }
 }

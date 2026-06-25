@@ -18,13 +18,13 @@ class BookDistribution extends Model
     protected static function booted()
     {
         static::created(function ($model) {
-            Log::info('Book Distribution created', $model->toArray());
+            Log::info('Book Distribution created', $model->only(['id', 'subject_id', 'class_id', 'student_number', 'teacher_id']));
         });
         static::updated(function ($model) {
-            Log::info('Book Distribution updated', $model->toArray());
+            Log::info('Book Distribution updated', $model->only(['id', 'subject_id', 'class_id', 'student_number', 'teacher_id']));
         });
         static::deleted(function ($model) {
-            Log::info('Book Distribution deleted', $model->toArray());
+            Log::info('Book Distribution deleted', $model->only(['id', 'subject_id', 'class_id', 'student_number', 'teacher_id']));
         });
     }
 }

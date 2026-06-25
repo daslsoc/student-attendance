@@ -44,8 +44,15 @@ infrastructure/hosting.
 - **Login-link throttling.** `POST /login` is now `throttle:5,1` so the endpoint
   can't be used to spam a teacher's inbox or to probe which emails are
   registered.
-- **PII trimmed from logs.** `AuthController` previously logged the teacher's
-  name on every link request and login; it now logs the user id only.
+- **Session fixation.** `loginUsingToken` now calls
+  `$request->session()->regenerate()` as it crosses from anonymous to
+  logged-in, so a pre-set (fixed) session ID can't be ridden across the login
+  boundary. Covered by `tests/Feature/AuthTest.php`.
+- **PII trimmed from logs.** `AuthController` logs the teacher's id, not name.
+  The model `booted()` audit hooks now log identifiers only (`$model->only([…])`)
+  instead of the full row — the `Student` hooks log `student_number` and never
+  the first/last name, so student names no longer reach `storage/logs/laravel.log`.
+  Covered by `tests/Unit/StudentTest.php`.
 - **Production env guidance.** `.env.example` documents `APP_DEBUG=false`,
   `SESSION_SECURE_COOKIE=true`, and the `custom.*` vars for production.
 
@@ -60,11 +67,12 @@ sign-off:
    make each link one-shot. (Owner chose to document rather than change this for
    now — it makes links single-use, a behaviour change for anyone re-clicking an
    email.)
-2. **Keep student PII out of the application log.** Every model's `booted()`
-   hook logs the full row (`$model->toArray()`) on create/update/delete, so
-   student first/last names land in `storage/logs/laravel.log` on every
-   attendance submit. Consider logging identifiers only, or routing this audit
-   trail to a dedicated, access-controlled channel.
+2. **Route the audit trail to a dedicated channel.** Student names are no longer
+   logged, but the `booted()` hooks still write a create/update/delete line
+   (with `student_number` and ids) to the default application log on every
+   change — and the bulk attendance editor can write many at once. Consider a
+   dedicated, access-controlled log channel for this audit trail rather than the
+   shared `laravel.log`.
 3. **Move validation into FormRequest classes** so rules live next to
    authorization and can be reused.
 4. **Add a Content-Security-Policy.** The layout loads Bootstrap/jQuery from

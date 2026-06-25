@@ -18,13 +18,13 @@ class Enrollment extends Model
     protected static function booted()
     {
         static::created(function ($model) {
-            Log::info('Enrollment created', $model->toArray());
+            Log::info('Enrollment created', $model->only(['id', 'student_number', 'subject_id', 'class_id']));
         });
         static::updated(function ($model) {
-            Log::info('Enrollment updated', $model->toArray());
+            Log::info('Enrollment updated', $model->only(['id', 'student_number', 'subject_id', 'class_id']));
         });
         static::deleted(function ($model) {
-            Log::info('Enrollment deleted', $model->toArray());
+            Log::info('Enrollment deleted', $model->only(['id', 'student_number', 'subject_id', 'class_id']));
         });
     }
 }

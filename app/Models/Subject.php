@@ -18,13 +18,13 @@ class Subject extends Model
     protected static function booted()
     {
         static::created(function ($model) {
-            Log::info('Subject created', $model->toArray());
+            Log::info('Subject created', $model->only(['id', 'name']));
         });
         static::updated(function ($model) {
-            Log::info('Subject updated', $model->toArray());
+            Log::info('Subject updated', $model->only(['id', 'name']));
         });
         static::deleted(function ($model) {
-            Log::info('Subject deleted', $model->toArray());
+            Log::info('Subject deleted', $model->only(['id', 'name']));
         });
     }
 }

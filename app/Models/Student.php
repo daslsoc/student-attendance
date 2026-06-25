@@ -23,14 +23,16 @@ class Student extends Model
      */
     protected static function booted()
     {
+        // Log identifiers only — never the student's name (PII) into the
+        // application log. The student_number is enough to trace a change.
         static::created(function ($model) {
-            Log::info('Student created', $model->toArray());
+            Log::info('Student created', ['student_number' => $model->student_number]);
         });
         static::updated(function ($model) {
-            Log::info('Student updated', $model->toArray());
+            Log::info('Student updated', ['student_number' => $model->student_number]);
         });
         static::deleted(function ($model) {
-            Log::info('Student deleted', $model->toArray());
+            Log::info('Student deleted', ['student_number' => $model->student_number]);
         });
     }
 }

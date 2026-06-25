@@ -18,13 +18,13 @@ class Attendance extends Model
     protected static function booted()
     {
         static::created(function ($model) {
-            Log::info('Attendance created', $model->toArray());
+            Log::info('Attendance created', $model->only(['id', 'date', 'subject_id', 'class_id', 'student_number', 'teacher_id']));
         });
         static::updated(function ($model) {
-            Log::info('Attendance updated', $model->toArray());
+            Log::info('Attendance updated', $model->only(['id', 'date', 'subject_id', 'class_id', 'student_number', 'teacher_id']));
         });
         static::deleted(function ($model) {
-            Log::info('Attendance deleted', $model->toArray());
+            Log::info('Attendance deleted', $model->only(['id', 'date', 'subject_id', 'class_id', 'student_number', 'teacher_id']));
         });
     }
 }

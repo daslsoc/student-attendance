@@ -55,6 +55,10 @@ class AuthController extends Controller
             return redirect('login')->withErrors(['msg' => 'That link has expired. Make sure you have clicked on the latest email or else enter your email and try again.']);
         }
 
+        // Regenerate the session ID as we cross from anonymous to logged-in so
+        // a pre-set (fixed) session ID can't be ridden across the boundary.
+        $request->session()->regenerate();
+
         session([
             'login_token_expires_at' => $teacher->login_token_expires_at,
             'teacher_logged_in' => true,

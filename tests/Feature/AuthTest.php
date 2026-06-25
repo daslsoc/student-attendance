@@ -59,6 +59,22 @@ class AuthTest extends TestCase
         $this->assertSame($teacher->id, session('teacher_id'));
     }
 
+    public function test_login_regenerates_the_session_id(): void
+    {
+        User::factory()->create([
+            'login_token' => 'valid-token',
+            'login_token_expires_at' => now()->addHour(),
+        ]);
+
+        $this->startSession();
+        $originalId = session()->getId();
+
+        $this->get(route('login.token', ['token' => 'valid-token']));
+
+        $this->assertNotSame($originalId, session()->getId());
+        $this->assertTrue(session('teacher_logged_in'));
+    }
+
     public function test_expired_token_is_rejected(): void
     {
         User::factory()->create([
