@@ -1,82 +1,74 @@
+# Student Attendance
 
-# All commands used to setup this repository
-git clone https://github.com/daslsoc/student-attendance.git
-mv student-attendance/ student-attendance1
-docker run --mount type=bind,src=./,dst=/app composer:2 create-project laravel/laravel student-attendance
-sudo mv student-attendance1/.git/ student-attendance
-sudo mv student-attendance1/LICENSE student-attendance
-rmdir student-attendance1
+A small Laravel 12 app for the Dhamma and Sinhala School of Canberra. Teachers
+log in with a one-time email link, mark which students are present for a chosen
+subject + class, and record book distribution. An attendance summary rolls the
+day up per subject and class.
 
+## Use cases
 
+> When you add a feature, add a bullet here in the same PR.
 
+- **Passwordless teacher login.** A teacher enters their email and receives a
+  one-time magic link; clicking it starts a session that expires after
+  `TOKEN_EXPIRY_HOURS` (default 4).
+- **Mark attendance.** Pick a subject and class, then tap each present student;
+  the page shows who was already marked present today and toggling re-saves.
+- **Record book distribution.** Same select-and-tap flow, tracked once per year
+  per subject + class.
+- **Attendance summary.** Per-subject, per-class counts of students present
+  today, drilling down to the named list.
 
+Only people seeded into the `users` table can request a login link. Students
+appear on a form only if they are enrolled in that `(subject, class)`.
 
-docker run --mount type=bind,src=./,dst=/var/www/html php:8-fpm php artisan make:migration create_students_table --create=students
-docker run --mount type=bind,src=./,dst=/var/www/html php:8-fpm php artisan make:migration create_subjects_table --create=subjects
-docker run --mount type=bind,src=./,dst=/var/www/html php:8-fpm php artisan make:migration create_classes_table --create=classes
-docker run --mount type=bind,src=./,dst=/var/www/html php:8-fpm php artisan make:migration create_attendance_table --create=attendance
-docker run --mount type=bind,src=./,dst=/var/www/html php:8-fpm php artisan migrate
+## Stack
 
-docker run --mount type=bind,src=./,dst=/var/www/html php:8-fpm php artisan make:model Student
-docker run --mount type=bind,src=./,dst=/var/www/html php:8-fpm php artisan make:model Subject
-docker run --mount type=bind,src=./,dst=/var/www/html php:8-fpm php artisan make:model ClassModel
-docker run --mount type=bind,src=./,dst=/var/www/html php:8-fpm php artisan make:model Attendance
-docker run --mount type=bind,src=./,dst=/var/www/html php:8-fpm php artisan make:model Enrollment -m
+- Laravel 12, PHP 8.2, MySQL (production). Local dev uses a sqlite file by
+  default; tests and Dusk run against MySQL for prod parity.
+- Bootstrap 5 + a small Vite-bundled JS module (`resources/js/studentSelector.js`)
+  for the tap-to-toggle behaviour.
 
-docker run --mount type=bind,src=./,dst=/var/www/html php:8-fpm php artisan make:controller AuthController
-docker run --mount type=bind,src=./,dst=/var/www/html php:8-fpm php artisan make:controller DashboardController
-docker run --mount type=bind,src=./,dst=/var/www/html php:8-fpm php artisan make:controller AttendanceController
+## Getting started (Docker dev stack)
 
-docker run --mount type=bind,src=./,dst=/var/www/html php:8-fpm php artisan make:mail LoginLinkMail --markdown=emails.loginlink
+There is no PHP/Composer on the host — all PHP tooling runs in the `app`
+container. Node runs on the host. Run `make` to list every target.
 
-docker run --mount type=bind,src=./,dst=/var/www/html php:8-fpm php artisan make:middleware EnsureTeacherAuthenticated
+```bash
+make build         # build the images (once)
+make install       # composer install (in container) + npm install (host)
+make db-setup      # create + migrate attendance_test and attendance_dusk
+make up            # start app + db + nginx
+```
 
-docker run --mount type=bind,src=./,dst=/var/www/html php:8-fpm php artisan make:factory SubjectFactory --model=Subject
-docker run --mount type=bind,src=./,dst=/var/www/html php:8-fpm php artisan make:factory ClassModelFactory --model=ClassModel
+Seed some data to click around (see [docs/setup-history.md](docs/setup-history.md)
+for a ready-made snippet), or load the real roster from `production_seeding.sql`.
 
-docker run --mount type=bind,src=./,dst=/var/www/html php:8-fpm php artisan make:model BookDistribution -m
-docker run --mount type=bind,src=./,dst=/var/www/html php:8-fpm php artisan make:controller BookDistributionController
+## Testing
 
-docker run --mount type=bind,src=./,dst=/var/www/html php:8-fpm php artisan make:migration add_login_token_fields_to_users_table --table=users
+```bash
+make test          # PHPUnit Unit + Feature (against attendance_test)
+make js-test       # Vitest (resources/js modules)
+make test-dusk     # Dusk browser tests (against attendance_dusk + Selenium)
+make lint          # Laravel Pint (style check); make lint-fix to apply
+make coverage      # PHPUnit HTML coverage; make js-coverage for JS
+```
 
-docker-compose up --build
-docker run --mount type=bind,src=./,dst=/var/www/html php:8-fpm php artisan migrate --seed
+CI (`.github/workflows/laravel.yml`) runs PHPUnit, Pint, and Vitest on every
+push / PR to `main`.
 
-docker run --mount type=bind,src=./,dst=/var/www/html php:8-fpm php artisan config:clear
-docker run --mount type=bind,src=./,dst=/var/www/html php:8-fpm php artisan view:clear
-docker run --mount type=bind,src=./,dst=/var/www/html php:8-fpm php artisan cache:clear
+> **Test-database safety.** `phpunit.xml` pins `DB_DATABASE=attendance_test`
+> with `force="true"`, and `tests/TestCase.php` refuses to run migrations
+> against any database that isn't an allow-listed test DB. This stops the suite
+> from ever wiping the dev or production database. See
+> [docs/security.md](docs/security.md).
 
-# Custom Seed
+## Documentation
 
-\App\Models\Subject::create(['name' => 'Buddhism']);
-\App\Models\Subject::create(['name' => 'Sinhala']);
-
-\App\Models\ClassModel::create(['name' => 'Class 1 (A)']);
-\App\Models\ClassModel::create(['name' => 'Class 1 (B)']);
-\App\Models\ClassModel::create(['name' => 'Class 2 (C)']);
-\App\Models\ClassModel::create(['name' => 'Class 3 (D)']);
-\App\Models\ClassModel::create(['name' => 'Class 4 (E)']);
-
-\App\Models\Student::create(['student_number' => '1', 'first_name' => 'Jo', 'last_name' => 'Blogs']);
-\App\Models\Student::create(['student_number' => '2', 'first_name' => 'Jane', 'last_name' => 'Blogs']);
-\App\Models\Enrollment::create(['student_number' => '1', 'class_id' => 1, 'subject_id' => 1]);
-\App\Models\Enrollment::create(['student_number' => '1', 'class_id' => 1, 'subject_id' => 2]);
-\App\Models\Enrollment::create(['student_number' => '2', 'class_id' => 2, 'subject_id' => 1]);
-
-SELECT `enrollments`.student_number as "Student #", students.first_name, students.last_name, classes.name as "Class"
-FROM `enrollments`, students, classes
-where `enrollments`.`student_number`= students.`student_number` and subject_id=1 and classes.id=`enrollments`.class_id;
-
-* list of students numbers and their names
-SELECT student_number, concat(first_name," ",last_name) FROM `students` order by student_number+0;
-
-* distinct dates
-select DISTINCT date(`created_at`) from attendances order by date(`created_at`) asc
-
-* student attendance dates
-SELECT distinct `attendances`.student_number, concat(`students`.first_name, " ", `students`.last_name) as "Name", date(`attendances`.`created_at`)
-FROM `attendances`, `students`
-where `students`.student_number=`attendances`.student_number
-order by date(`created_at`) asc;
-
-* intake has to also cover a mature age student including drop down lists
+- [docs/deployment.md](docs/deployment.md) — shared-server deploy checklist
+  (production is **not** Docker).
+- [docs/operations.md](docs/operations.md) — admin SQL/PHP (create a teacher,
+  enrollments, reports).
+- [docs/security.md](docs/security.md) — security review, fixes, and follow-ups.
+- [docs/setup-history.md](docs/setup-history.md) — original scaffolding log and
+  scratch queries.
