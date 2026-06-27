@@ -32,6 +32,7 @@
           <a class="nav-link" aria-current="page" href="{{route('attendance.summary')}}">Summary</a>
           <a class="nav-link" aria-current="page" href="{{route('attendance.grid')}}">Attendance Grid</a>
           <a class="nav-link" aria-current="page" href="{{route('attendance.edit')}}">Edit Attendance</a>
+          <a class="nav-link" aria-current="page" href="{{route('integration.index')}}">Enrol from Registration</a>
         </div>
       </div>
     </div>

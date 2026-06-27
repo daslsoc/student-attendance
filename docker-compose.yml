@@ -25,12 +25,19 @@ services:
       - db
     networks:
       - attendance_net
+    # Lets this container reach services published on the host (e.g. the sibling
+    # student-registration app on host port 8090) without sharing a Docker
+    # network — see docs/integration.md.
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
 
-  # Nginx — serves public/ for browser/Dusk runs. No host port published by
-  # default to avoid colliding with the other projects' port 80.
+  # Nginx — serves public/ for browser/Dusk runs. Published on host 8089 (a
+  # high port chosen to avoid colliding with the other projects on this machine).
   nginx:
     image: nginx:latest
     restart: unless-stopped
+    ports:
+      - "8089:80"
     volumes:
       - .:/var/www/html
       - ./docker/default.conf:/etc/nginx/conf.d/default.conf:ro

@@ -41,6 +41,8 @@ make db-setup      # create + migrate attendance_test and attendance_dusk
 make up            # start app + db + nginx
 ```
 
+The app is then served at **http://localhost:8089**.
+
 Seed some demo data to click around:
 
 ```bash
@@ -78,5 +80,7 @@ push / PR to `main`.
 - [docs/operations.md](docs/operations.md) — admin SQL/PHP (create a teacher,
   enrollments, reports).
 - [docs/security.md](docs/security.md) — security review, fixes, and follow-ups.
+- [docs/integration.md](docs/integration.md) — pulling paid students from the
+  student-registration app and enrolling them here.
 - [docs/setup-history.md](docs/setup-history.md) — original scaffolding log and
   scratch queries.

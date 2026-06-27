@@ -4,6 +4,7 @@ use App\Http\Controllers\AttendanceController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\BookDistributionController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\RegistrationImportController;
 use App\Http\Middleware\EnsureTeacherAuthenticated;
 use Illuminate\Support\Facades\Route;
 
@@ -29,6 +30,9 @@ Route::middleware([EnsureTeacherAuthenticated::class])->group(function () {
     Route::get('/attendance-grid', [DashboardController::class, 'grid'])->name('attendance.grid');
     Route::get('/attendance-edit', [DashboardController::class, 'editGrid'])->name('attendance.edit');
     Route::post('/attendance-edit', [DashboardController::class, 'updateGrid'])->name('attendance.edit.update');
+
+    Route::get('/registration-import', [RegistrationImportController::class, 'index'])->name('integration.index');
+    Route::post('/registration-import/enroll', [RegistrationImportController::class, 'enroll'])->name('integration.enroll');
 });
 
 Route::get('/', function () {
