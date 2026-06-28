@@ -35,6 +35,39 @@ class AuthTest extends TestCase
         $this->assertNotNull($teacher->login_token_expires_at);
     }
 
+    public function test_requesting_a_second_link_reuses_the_same_valid_token(): void
+    {
+        Mail::fake();
+        $teacher = User::factory()->create([
+            'email' => 'teacher@example.com',
+            'login_token' => 'still-valid',
+            'login_token_expires_at' => now()->addHour(),
+        ]);
+
+        $this->post(route('login.send'), ['email' => 'teacher@example.com']);
+
+        // The earlier email's link must stay valid, so the token is unchanged.
+        $teacher->refresh();
+        $this->assertSame('still-valid', $teacher->login_token);
+        Mail::assertSent(LoginLinkMail::class);
+    }
+
+    public function test_an_expired_token_is_replaced_on_the_next_request(): void
+    {
+        Mail::fake();
+        $teacher = User::factory()->create([
+            'email' => 'teacher@example.com',
+            'login_token' => 'stale-token',
+            'login_token_expires_at' => now()->subHour(),
+        ]);
+
+        $this->post(route('login.send'), ['email' => 'teacher@example.com']);
+
+        $teacher->refresh();
+        $this->assertNotSame('stale-token', $teacher->login_token);
+        $this->assertTrue($teacher->login_token_expires_at->isFuture());
+    }
+
     public function test_send_login_link_rejects_an_unknown_email(): void
     {
         Mail::fake();
