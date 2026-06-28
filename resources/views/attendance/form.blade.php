@@ -25,7 +25,7 @@
                         @php
                             $isAttended = in_array($student->student_number, $attendedStudents);
                         @endphp
-                        <button type="button" class="btn btn-lg student-btn {{ $isAttended ? 'btn-success' : 'btn-outline-primary' }}" data-student="{{ $student->student_number }}">
+                        <button type="button" class="btn student-btn {{ $isAttended ? 'btn-success' : 'btn-outline-primary' }}" data-student="{{ $student->student_number }}">
                             {{ $student->first_name }} {{ $student->last_name }}
                         </button>
                     @endforeach
@@ -40,7 +40,7 @@
                         <span class="badge text-bg-success" data-selection-count>{{ count($attendedStudents) }}</span>
                         / <span data-selection-total>{{ count($students) }}</span> present
                     </span>
-                    <button type="submit" class="btn btn-primary btn-lg">Submit Attendance</button>
+                    <button type="submit" class="btn btn-primary">Submit Attendance</button>
                 </div>
             </div>
         </form>

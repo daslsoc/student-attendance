@@ -25,7 +25,7 @@
                         @php
                             $isGiven = in_array($student->student_number, $givenBooks);
                         @endphp
-                        <button type="button" class="btn btn-lg student-btn {{ $isGiven ? 'btn-success' : 'btn-outline-primary' }}" data-student="{{ $student->student_number }}">
+                        <button type="button" class="btn student-btn {{ $isGiven ? 'btn-success' : 'btn-outline-primary' }}" data-student="{{ $student->student_number }}">
                             {{ $student->first_name }} {{ $student->last_name }}
                         </button>
                     @endforeach
@@ -39,7 +39,7 @@
                         <span class="badge text-bg-success" data-selection-count>{{ count($givenBooks) }}</span>
                         / <span data-selection-total>{{ count($students) }}</span> given
                     </span>
-                    <button type="submit" class="btn btn-primary btn-lg">Submit Book Distribution</button>
+                    <button type="submit" class="btn btn-primary">Submit Book Distribution</button>
                 </div>
             </div>
         </form>
