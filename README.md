@@ -2,8 +2,9 @@
 
 A small Laravel 12 app for the Dhamma and Sinhala School of Canberra. Teachers
 log in with a one-time email link, mark which students are present for a chosen
-subject + class, and record book distribution. An attendance summary rolls the
-day up per subject and class.
+subject + class, and record book distribution. Daily and full-year reports roll
+the data up per subject and class, and paid students enrol automatically from
+the sibling student-registration app.
 
 ## Use cases
 
@@ -11,15 +12,26 @@ day up per subject and class.
 
 - **Passwordless teacher login.** A teacher enters their email and receives a
   one-time magic link; clicking it starts a session that expires after
-  `TOKEN_EXPIRY_HOURS` (default 4).
+  `TOKEN_EXPIRY_HOURS` (default 4). Requesting it again re-sends the *same* link
+  (so an earlier email still works), and the mail goes out after the response so
+  the page returns immediately.
 - **Mark attendance.** Pick a subject and class, then tap each present student;
-  the page shows who was already marked present today and toggling re-saves.
-- **Record book distribution.** Same select-and-tap flow, tracked once per year
-  per subject + class.
+  a sticky bar shows a live present / total count, with a name search and
+  select-all / clear for phones. The page shows who was already marked present
+  today and toggling re-saves.
+- **Record book distribution.** Same select-and-tap flow (with the same count,
+  search, and shortcuts), tracked once per year per subject + class.
+- **Back-fill attendance.** An editable, searchable grid for a subject + class:
+  tick the dates each student attended and Save in one go — for sessions that
+  were missed.
 - **Reports.** *Today's Report* gives per-subject, per-class counts of students
   present today, drilling down to the named list; *Full Year Report* is a
-  per-subject grid of every student against every date the subject met, with
-  per-student totals.
+  searchable, sortable grid of every student against every date the subject met,
+  with per-student totals.
+- **Auto-enrolment from registration.** Paid students and their class
+  allocations sync automatically from the sibling student-registration app
+  (cron or a Sync now button); a Registration Sync page shows when it last ran.
+  See [docs/integration.md](docs/integration.md).
 
 Only people seeded into the `users` table can request a login link. Students
 appear on a form only if they are enrolled in that `(subject, class)`.
@@ -29,7 +41,8 @@ appear on a form only if they are enrolled in that `(subject, class)`.
 - Laravel 12, PHP 8.2, MySQL (production). Local dev uses a sqlite file by
   default; tests and Dusk run against MySQL for prod parity.
 - Bootstrap 5 + a small Vite-bundled JS module (`resources/js/studentSelector.js`)
-  for the tap-to-toggle behaviour.
+  for the tap-to-toggle behaviour; the Edit Attendance and Full Year Report
+  grids use DataTables (search / sort / paginate), loaded from a CDN.
 
 ## Getting started (Docker dev stack)
 
