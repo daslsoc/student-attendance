@@ -95,63 +95,64 @@ SELECT id, name FROM classes ORDER BY id;     -- verify A–E
 
 ---
 
-## 4. ⚠️ Reconcile drifted student numbers (MUST do before any sync)
+## 4. ⚠️ Merge duplicate student numbers (MUST do before any sync)
 
-The whole sync keys on `student_number`. The two systems assigned numbers
-independently and a handful have **drifted**, which would otherwise cause
-duplicate students and identity overwrites. **Resolve these before step 7.**
+The whole sync keys on `student_number`. Attendance and registration assigned
+numbers independently, and a handful of children ended up **stored twice in
+attendance** — once under each number — with their attendance history split
+across both rows. **Registration's number is canonical.** Left as-is, the sync
+would compound the problem (more duplicates). Fix it with `integration:merge-students`
+before step 7.
 
-### 4a. Detect the conflicts
+### 4a. Find the duplicates
 
-Dump name+number from each database and compare (run on the host):
+A child stored under two numbers shows up as the same name twice in attendance:
 
 ```bash
-mysql -N REG_DB -e "SELECT student_number, CONCAT(first_name,' ',last_name) \
-  FROM children WHERE student_number IS NOT NULL ORDER BY student_number" > reg_nums.tsv
-mysql -N ATT_DB -e "SELECT student_number, CONCAT(first_name,' ',last_name) \
-  FROM students WHERE student_number IS NOT NULL ORDER BY student_number" > att_nums.tsv
-
-# COLLISIONS: same number, different child
-awk -F'\t' 'NR==FNR{r[$1]=tolower($2);next}{a=tolower($2)} ($1 in r)&&r[$1]!=a{print "COLLISION #"$1": ATT="$2" / REG(num)="r[$1]}' reg_nums.tsv att_nums.tsv
-
-# DUPLICATES: same child (name), different number
-awk -F'\t' 'NR==FNR{n[tolower($2)]=$1;next}{a=tolower($2)} (a in n)&&n[a]!=$1{print "DUP "$2": ATT#"$1" vs REG#"n[a]}' reg_nums.tsv att_nums.tsv
+mysql -N ATT_DB -e "
+  SELECT LOWER(CONCAT(first_name,' ',last_name)) nm, GROUP_CONCAT(student_number) nums
+  FROM students GROUP BY nm HAVING COUNT(*) > 1"
+```
+For each, the **keeper** is the number registration uses for that child:
+```bash
+mysql -N REG_DB -e "SELECT student_number, first_name, last_name FROM children
+  WHERE CONCAT(first_name,' ',last_name) IN ('Senaree Piyasenage', ...)"
 ```
 
-### 4b. Known conflicts in the current data
+### 4b. Known duplicates in the current data
 
-If the data hasn't changed since the last export, these are the exact cases:
+If the data hasn't changed since the last export, these are the exact pairs
+(`OLD attendance number` → `NEW registration number`, keep NEW):
 
-| Child | Attendance # | Registration # | Type |
-|---|---|---|---|
-| Malitha Munasinghe | 74 | 75 | drift; #74 also collides (REG#74 = Bhanuka Matara Liyanage) |
-| Jinuli Senanayake | 84 | 86 | drift |
-| Kimaya Weerakoon | 102 | 104 | drift |
-| Senaree Piyasenage | 228 | 230 | drift |
-| Thehas Waduge | 231 | 21 | drift; #231 also collides (REG#231 = Methmika Devja Aponsu) |
+| Child | OLD (attendance) | NEW (registration, keep) |
+|---|---|---|
+| Malitha Munasinghe | 74 | 75 |
+| Jinuli Senanayake | 84 | 86 |
+| Kimaya Weerakoon | 102 | 104 |
+| Senaree Piyasenage | 228 | 230 |
+| Thehas Waduge | 231 | 21 |
 
-### 4c. Fix
+### 4c. Merge
 
-**Decision: attendance numbers are canonical** (they carry historical attendance
-records). Make registration match attendance for each drifted child, e.g.:
+Preview first, then run. The command repoints enrollments, attendances (incl.
+archived `attendances.YYYY`), and book distributions from OLD onto NEW, drops
+rows that would duplicate one already on NEW, and deletes the OLD record — all in
+a transaction. It **refuses** any pair whose two records have different names (a
+real number collision, not a duplicate), so it can't merge two different kids.
 
-```sql
--- REG_DB — set registration's number to attendance's, per child, BY IDENTITY.
--- Verify each child's id first; do NOT blindly trust numbers.
-UPDATE children SET student_number = '102' WHERE first_name='Kimaya'  AND last_name='Weerakoon';
-UPDATE children SET student_number = '228' WHERE first_name='Senaree' AND last_name='Piyasenage';
-UPDATE children SET student_number = '84'  WHERE first_name='Jinuli'  AND last_name='Senanayake';
--- The two that collide need the colliding child renumbered FIRST to free the
--- target number, or you'll create a duplicate number inside registration:
---   Thehas needs #231, but REG#231 is Methmika  -> give Methmika a new free number first.
---   Malitha needs #74,  but REG#74  is Bhanuka   -> give Bhanuka a new free number first.
+In **attendance**:
+```bash
+php artisan integration:merge-students \
+  --merge=74:75 --merge=84:86 --merge=102:104 --merge=228:230 --merge=231:21 --dry-run
+
+# review the per-pair "WOULD MERGE …" summary, then drop --dry-run:
+php artisan integration:merge-students \
+  --merge=74:75 --merge=84:86 --merge=102:104 --merge=228:230 --merge=231:21
 ```
-
-Re-run the **4a** detection until both lists are empty. Only then proceed.
-
-> If you'd rather not hand-reconcile, the safe alternative is to leave the
-> drifted/colliding children **unpaid-or-unallocated** so they're excluded from
-> the sync, and enrol them manually — but aligning the numbers once is cleaner.
+Re-run **4a** until it returns nothing. After this, freeing the OLD numbers also
+clears the earlier "collision" worry: e.g. registration's own `#74`
+(Bhanuka Matara Liyanage) and `#231` (Methmika Devja Aponsu) now sync into the
+vacated attendance numbers without clashing.
 
 ---
 
