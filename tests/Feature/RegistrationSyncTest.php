@@ -10,6 +10,7 @@ use App\Models\Subject;
 use App\Services\RegistrationSyncService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 use Tests\TestCase;
 
 class RegistrationSyncTest extends TestCase
@@ -116,6 +117,24 @@ class RegistrationSyncTest extends TestCase
         $this->assertDatabaseMissing('students', ['student_number' => '4321']);
         $this->assertSame(0, Enrollment::count());
         $this->assertNull(IntegrationSyncState::current()->last_synced_at);
+    }
+
+    public function test_it_logs_an_audit_line_for_every_run(): void
+    {
+        Subject::factory()->create(['name' => 'Buddhism']);
+        Subject::factory()->create(['name' => 'Sinhala']);
+        ClassModel::factory()->create(['name' => 'Class C']);
+        $this->fakeChanges([$this->child()]);
+
+        Log::spy();
+
+        $this->sync();
+
+        Log::shouldHaveReceived('info')
+            ->withArgs(fn ($message, $context = []) => str_contains($message, 'Registration sync')
+                && ($context['received'] ?? null) === 1
+                && ($context['enrolled'] ?? null) === 2)
+            ->once();
     }
 
     public function test_it_skips_a_missing_class_with_a_warning(): void

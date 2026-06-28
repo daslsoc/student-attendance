@@ -5,6 +5,7 @@ namespace App\Console\Commands;
 use App\Exceptions\RegistrationApiException;
 use App\Services\RegistrationSyncService;
 use Illuminate\Console\Command;
+use Illuminate\Support\Facades\Log;
 
 /**
  * Pulls allocations from student-registration and enrols students. Wire this to
@@ -24,6 +25,7 @@ class RegistrationSync extends Command
         try {
             $result = $sync->sync($dryRun);
         } catch (RegistrationApiException $e) {
+            Log::error('Registration sync failed', ['error' => $e->getMessage()]);
             $this->error($e->getMessage());
 
             return self::FAILURE;

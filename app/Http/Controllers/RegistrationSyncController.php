@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Exceptions\RegistrationApiException;
 use App\Models\IntegrationSyncState;
 use App\Services\RegistrationSyncService;
+use Illuminate\Support\Facades\Log;
 
 /**
  * Shows when the app last synced allocations from student-registration and lets
@@ -25,6 +26,8 @@ class RegistrationSyncController extends Controller
         try {
             $result = $sync->sync();
         } catch (RegistrationApiException $e) {
+            Log::error('Registration sync failed', ['error' => $e->getMessage()]);
+
             return redirect()->route('integration.status')->withErrors($e->getMessage());
         }
 

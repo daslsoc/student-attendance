@@ -8,6 +8,7 @@ use App\Models\IntegrationSyncState;
 use App\Models\Student;
 use App\Models\Subject;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 /**
  * Pulls class allocations from student-registration and reconciles the local
@@ -84,6 +85,16 @@ class RegistrationSyncService
 
             throw $e;
         }
+
+        // An audit line for every run, so the cron job is traceable in
+        // laravel.log even when nothing changed. Counts only — no names/PII;
+        // any warnings carry student_number, consistent with the model logs.
+        Log::info('Registration sync '.($dryRun ? '(dry run) completed' : 'completed'), [
+            'received' => count($payload['students']),
+            'enrolled' => $enrolled,
+            'moved' => $moved,
+            'warnings' => $warnings,
+        ]);
 
         return [
             'received' => count($payload['students']),
