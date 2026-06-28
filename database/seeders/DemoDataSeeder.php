@@ -39,11 +39,13 @@ class DemoDataSeeder extends Seeder
         $buddhism = Subject::firstOrCreate(['name' => 'Buddhism']);
         $sinhala = Subject::firstOrCreate(['name' => 'Sinhala']);
 
-        // Classes (global in the schema; the subject link comes via enrollment).
-        // Names match the registration app's class list so the import maps cleanly.
-        $classA = ClassModel::firstOrCreate(['name' => 'Class 1 (A)']);
-        $classB = ClassModel::firstOrCreate(['name' => 'Class 1 (B)']);
-        $classC = ClassModel::firstOrCreate(['name' => 'Class 2 (C)']);
+        // Classes A–E — the names the registration allocation rule produces, so
+        // synced allocations resolve here by name.
+        $classA = ClassModel::firstOrCreate(['name' => 'Class A']);
+        $classB = ClassModel::firstOrCreate(['name' => 'Class B']);
+        $classC = ClassModel::firstOrCreate(['name' => 'Class C']);
+        ClassModel::firstOrCreate(['name' => 'Class D']);
+        ClassModel::firstOrCreate(['name' => 'Class E']);
 
         // Students.
         $students = [

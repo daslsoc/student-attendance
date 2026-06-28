@@ -6,20 +6,22 @@ use App\Exceptions\RegistrationApiException;
 use Illuminate\Support\Facades\Http;
 
 /**
- * Talks to the student-registration integration API. Read-only: it only ever
- * fetches the list of paid students. Authentication is a shared bearer token.
+ * Talks to the student-registration integration API. Read-only: it fetches the
+ * paid students and their class allocations. Authentication is a shared bearer
+ * token.
  */
 class RegistrationClient
 {
     /**
-     * The children whose family has paid, as returned by registration. Each row:
-     * student_number, first_name, last_name, dhamma_class, sinhala_class.
-     *
-     * @return array<int, array<string, string>>
+     * The integration delta. Pass the last-synced high-water mark as $since to
+     * get only what changed since then; omit it for a full pull. Returns:
+     *   ['last_changed_at' => ?string, 'count' => int, 'students' => array]
+     * where each student is student_number, first_name, last_name,
+     * allocated_dhamma_class, allocated_sinhala_class.
      *
      * @throws RegistrationApiException
      */
-    public function paidStudents(): array
+    public function changes(?string $since = null): array
     {
         $url = (string) config('integration.registration_url');
         $token = (string) config('integration.registration_token');
@@ -35,7 +37,7 @@ class RegistrationClient
                 ->withToken($token)
                 ->acceptJson()
                 ->timeout(10)
-                ->get('/api/integration/paid-students');
+                ->get('/api/integration/changes', $since ? ['since' => $since] : []);
         } catch (\Throwable $e) {
             throw new RegistrationApiException('Could not reach the registration app: '.$e->getMessage(), 0, $e);
         }
@@ -50,6 +52,10 @@ class RegistrationClient
             throw new RegistrationApiException('The registration app returned an error ('.$response->status().').');
         }
 
-        return $response->json('data', []);
+        return [
+            'last_changed_at' => $response->json('last_changed_at'),
+            'count' => (int) $response->json('count', 0),
+            'students' => $response->json('students', []),
+        ];
     }
 }

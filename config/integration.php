@@ -36,11 +36,4 @@ return [
 
     'subject_for_sinhala' => env('INTEGRATION_SINHALA_SUBJECT', 'Sinhala'),
 
-    /*
-    | Registration's sentinel value meaning "no class for this subject" — these
-    | children should NOT be enrolled in that subject.
-    */
-
-    'no_class_value' => 'Did not attend last year',
-
 ];

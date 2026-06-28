@@ -16,8 +16,10 @@ day up per subject and class.
   the page shows who was already marked present today and toggling re-saves.
 - **Record book distribution.** Same select-and-tap flow, tracked once per year
   per subject + class.
-- **Attendance summary.** Per-subject, per-class counts of students present
-  today, drilling down to the named list.
+- **Reports.** *Today's Report* gives per-subject, per-class counts of students
+  present today, drilling down to the named list; *Full Year Report* is a
+  per-subject grid of every student against every date the subject met, with
+  per-student totals.
 
 Only people seeded into the `users` table can request a login link. Students
 appear on a form only if they are enrolled in that `(subject, class)`.
@@ -80,7 +82,10 @@ push / PR to `main`.
 - [docs/operations.md](docs/operations.md) — admin SQL/PHP (create a teacher,
   enrollments, reports).
 - [docs/security.md](docs/security.md) — security review, fixes, and follow-ups.
-- [docs/integration.md](docs/integration.md) — pulling paid students from the
-  student-registration app and enrolling them here.
+- [docs/integration.md](docs/integration.md) — auto-syncing paid students and
+  their class allocations from the student-registration app.
+- [docs/rollout-runbook.md](docs/rollout-runbook.md) — copy-paste production
+  rollout steps for switching the integration on (incl. student-number
+  reconciliation).
 - [docs/setup-history.md](docs/setup-history.md) — original scaffolding log and
   scratch queries.

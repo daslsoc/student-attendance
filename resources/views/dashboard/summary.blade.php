@@ -2,7 +2,7 @@
 
 @section('content')
 <div class="container">
-    <h2 class="mb-1">Today's Attendance</h2>
+    <h2 class="mb-1">Today's Report</h2>
     <p class="text-muted mb-4">Each badge shows <strong>present today / enrolled</strong>. Click a subject total or a class to see who's present.</p>
 
     <div class="row g-4">

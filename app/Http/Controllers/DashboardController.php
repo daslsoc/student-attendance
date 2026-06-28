@@ -108,11 +108,12 @@ class DashboardController extends Controller
     }
 
     /**
-     * A grid for one subject (all its classes merged): every enrolled student
-     * down the side, every date the subject met this year across the top, a
-     * tick in each cell they attended, and their total days attended.
+     * An attendance report for one subject (all its classes merged): every
+     * enrolled student down the side, every date the subject met this year
+     * across the top, a tick in each cell they attended, and their total days
+     * attended.
      */
-    public function grid(Request $request)
+    public function report(Request $request)
     {
         $subjects = Subject::orderBy('name')->get();
         $subjectId = $request->query('subject_id');
@@ -159,7 +160,7 @@ class DashboardController extends Controller
             }
         }
 
-        return view('dashboard.grid', compact(
+        return view('dashboard.report', compact(
             'subjects', 'subject', 'students', 'dates', 'present', 'totals'
         ));
     }

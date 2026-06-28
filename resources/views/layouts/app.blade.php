@@ -20,21 +20,35 @@
     <div class="container-fluid">
       <a class="navbar-brand" href="/">
         <img src="/images/logo.png" alt="logo" width="27" height="30" class="d-inline-block align-text-top">
-        Dhamma and Sinhala School of Canberra
+        {{ config('app.name', 'Attendance System') }}
       </a>
+      @if(session('teacher_logged_in'))
       <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNavAltMarkup" aria-controls="navbarNavAltMarkup" aria-expanded="false" aria-label="Toggle navigation">
         <span class="navbar-toggler-icon"></span>
       </button>
+      @endif
+      @if(session('teacher_logged_in'))
       <div class="collapse navbar-collapse" id="navbarNavAltMarkup">
         <div class="navbar-nav">
-          <a class="nav-link" aria-current="page" href="{{route('attendance.selection')}}">New Attendance</a>
+          <div class="nav-item dropdown">
+            <a class="nav-link dropdown-toggle" href="#" id="attendanceDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">Attendance</a>
+            <ul class="dropdown-menu" aria-labelledby="attendanceDropdown">
+              <li><a class="dropdown-item" href="{{route('attendance.selection')}}">New Attendance</a></li>
+              <li><a class="dropdown-item" href="{{route('attendance.edit')}}">Edit Attendance</a></li>
+            </ul>
+          </div>
           <a class="nav-link" aria-current="page" href="{{route('book_distribution.selection')}}">Book Distribution</a>
-          <a class="nav-link" aria-current="page" href="{{route('attendance.summary')}}">Summary</a>
-          <a class="nav-link" aria-current="page" href="{{route('attendance.grid')}}">Attendance Grid</a>
-          <a class="nav-link" aria-current="page" href="{{route('attendance.edit')}}">Edit Attendance</a>
-          <a class="nav-link" aria-current="page" href="{{route('integration.index')}}">Enrol from Registration</a>
+          <div class="nav-item dropdown">
+            <a class="nav-link dropdown-toggle" href="#" id="reportDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">Report</a>
+            <ul class="dropdown-menu" aria-labelledby="reportDropdown">
+              <li><a class="dropdown-item" href="{{route('attendance.summary')}}">Today's Report</a></li>
+              <li><a class="dropdown-item" href="{{route('attendance.report')}}">Full Year Report</a></li>
+            </ul>
+          </div>
+          <a class="nav-link" aria-current="page" href="{{route('integration.status')}}">Registration Sync</a>
         </div>
       </div>
+      @endif
     </div>
   </nav>
 

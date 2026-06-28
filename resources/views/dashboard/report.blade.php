@@ -2,10 +2,10 @@
 
 @section('content')
 <div class="container-fluid">
-    <h2 class="mb-1">Attendance Grid</h2>
+    <h2 class="mb-1">Full Year Report</h2>
     <p class="text-muted mb-4">{{ now()->year }} &middot; one row per student, one column per date the subject met.</p>
 
-    <form action="{{ route('attendance.grid') }}" method="GET" class="row g-2 align-items-end mb-4">
+    <form action="{{ route('attendance.report') }}" method="GET" class="row g-2 align-items-end mb-4">
         <div class="col-auto">
             <label for="subject_id" class="form-label">Subject</label>
             <select name="subject_id" id="subject_id" class="form-select" required>

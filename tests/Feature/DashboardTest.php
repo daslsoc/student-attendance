@@ -103,7 +103,7 @@ class DashboardTest extends TestCase
         $response->assertSee('Dorothy');
     }
 
-    public function test_grid_shows_a_student_with_their_total_days_attended(): void
+    public function test_report_shows_a_student_with_their_total_days_attended(): void
     {
         $teacher = $this->actingAsTeacher();
         $subject = Subject::factory()->create(['name' => 'Sinhala']);
@@ -130,7 +130,7 @@ class DashboardTest extends TestCase
             ]);
         }
 
-        $response = $this->get(route('attendance.grid', ['subject_id' => $subject->id]));
+        $response = $this->get(route('attendance.report', ['subject_id' => $subject->id]));
 
         $response->assertStatus(200);
         $response->assertSee('Margaret');
@@ -138,11 +138,11 @@ class DashboardTest extends TestCase
         $response->assertSee('2');
     }
 
-    public function test_grid_without_a_subject_just_shows_the_picker(): void
+    public function test_report_without_a_subject_just_shows_the_picker(): void
     {
         $this->actingAsTeacher();
 
-        $response = $this->get(route('attendance.grid'));
+        $response = $this->get(route('attendance.report'));
 
         $response->assertStatus(200);
         $response->assertSee('Choose a subject');
