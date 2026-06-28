@@ -15,9 +15,11 @@ class RegistrationClient
     /**
      * The integration delta. Pass the last-synced high-water mark as $since to
      * get only what changed since then; omit it for a full pull. Returns:
-     *   ['last_changed_at' => ?string, 'count' => int, 'students' => array]
+     *   ['last_changed_at' => ?string, 'count' => int, 'students' => array,
+     *    'removed' => array]
      * where each student is student_number, first_name, last_name,
-     * allocated_dhamma_class, allocated_sinhala_class.
+     * allocated_dhamma_class, allocated_sinhala_class, and `removed` is a list
+     * of student_numbers no longer in the paid roster (to be unenrolled here).
      *
      * @throws RegistrationApiException
      */
@@ -56,6 +58,7 @@ class RegistrationClient
             'last_changed_at' => $response->json('last_changed_at'),
             'count' => (int) $response->json('count', 0),
             'students' => $response->json('students', []),
+            'removed' => $response->json('removed', []),
         ];
     }
 }

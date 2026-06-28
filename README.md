@@ -31,6 +31,9 @@ the sibling student-registration app.
 - **Auto-enrolment from registration.** Paid students and their class
   allocations sync automatically from the sibling student-registration app
   (cron or a Sync now button); a Registration Sync page shows when it last ran.
+  Students who are no longer paid (e.g. a reverted payment) arrive in the
+  feed's `removed` list and are **unenrolled** here — taken off the class
+  rosters while their student record and attendance history are kept.
   See [docs/integration.md](docs/integration.md).
 
 Only people seeded into the `users` table can request a login link. Students

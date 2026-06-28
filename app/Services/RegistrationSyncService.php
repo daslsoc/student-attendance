@@ -24,10 +24,10 @@ class RegistrationSyncService
     /**
      * Pull allocations and reconcile. With $dryRun the exact same work runs
      * inside a transaction that is rolled back at the end: the returned
-     * enrolled/moved/warnings counts are what a real run *would* do, but nothing
-     * is persisted and the sync state is left untouched.
+     * enrolled/moved/removed/warnings counts are what a real run *would* do, but
+     * nothing is persisted and the sync state is left untouched.
      *
-     * @return array{received:int, enrolled:int, moved:int, warnings:array<int,string>, last_synced_at: mixed, dry_run: bool}
+     * @return array{received:int, enrolled:int, moved:int, removed:int, warnings:array<int,string>, last_synced_at: mixed, dry_run: bool}
      */
     public function sync(bool $dryRun = false): array
     {
@@ -41,6 +41,7 @@ class RegistrationSyncService
 
         $enrolled = 0;
         $moved = 0;
+        $removed = 0;
         $warnings = [];
 
         // One outer transaction so a dry run can roll the whole thing back. The
@@ -69,6 +70,20 @@ class RegistrationSyncService
                 });
             }
 
+            // Students no longer in the paid roster: drop their enrollments so
+            // they fall off the class lists. The student row and their
+            // attendance/book-distribution history are kept (deleting a student
+            // would cascade and destroy that history); a re-paid student is
+            // simply re-enrolled by the students loop above on a later sync.
+            foreach ($payload['removed'] as $studentNumber) {
+                DB::transaction(function () use ($studentNumber, &$removed) {
+                    $deleted = Enrollment::where('student_number', (string) $studentNumber)->delete();
+                    if ($deleted > 0) {
+                        $removed++;
+                    }
+                });
+            }
+
             $state->update([
                 'last_synced_at' => $payload['last_changed_at'] ?: $state->last_synced_at,
                 'last_checked_at' => now(),
@@ -93,6 +108,7 @@ class RegistrationSyncService
             'received' => count($payload['students']),
             'enrolled' => $enrolled,
             'moved' => $moved,
+            'removed' => $removed,
             'warnings' => $warnings,
         ]);
 
@@ -100,6 +116,7 @@ class RegistrationSyncService
             'received' => count($payload['students']),
             'enrolled' => $enrolled,
             'moved' => $moved,
+            'removed' => $removed,
             'warnings' => $warnings,
             'last_synced_at' => $dryRun ? $state->getOriginal('last_synced_at') : $state->fresh()->last_synced_at,
             'dry_run' => $dryRun,

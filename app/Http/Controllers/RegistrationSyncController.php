@@ -31,7 +31,7 @@ class RegistrationSyncController extends Controller
             return redirect()->route('integration.status')->withErrors($e->getMessage());
         }
 
-        $message = "Sync complete: {$result['received']} received, {$result['enrolled']} newly enrolled, {$result['moved']} moved.";
+        $message = "Sync complete: {$result['received']} received, {$result['enrolled']} newly enrolled, {$result['moved']} moved, {$result['removed']} removed.";
 
         return redirect()->route('integration.status')
             ->with('message', $message)

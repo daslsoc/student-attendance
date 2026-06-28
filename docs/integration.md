@@ -37,8 +37,10 @@ REGISTRATION (at payment)
 
 ATTENDANCE (cron, or "Sync now" on the Registration Sync page)
   • GET /api/integration/changes?since=<last_synced_at>
-  • for each changed child: upsert the students row, then reconcile each
+  • for each child in `students`: upsert the students row, then reconcile each
     subject's enrollment to the allocated class (moving them if it changed)
+  • for each student_number in `removed`: delete their enrollments (off the
+    rosters); the student row + attendance history are kept
   • store the new last_synced_at
 ```
 
@@ -51,12 +53,17 @@ Authorization: Bearer <token>
 → { "last_changed_at": "2026-06-28 10:00:00", "count": 42,
     "students": [ { "student_number": "4321", "first_name": "Amara",
       "last_name": "Perera", "allocated_dhamma_class": "Class C",
-      "allocated_sinhala_class": "Class C" }, … ] }
+      "allocated_sinhala_class": "Class C" }, … ],
+    "removed": [ "9981", "9982" ] }
 ```
 
 - `since` filters to children with `updated_at >= since`, so the consumer only
   pulls deltas. Omit it for a full sync.
-- `last_changed_at` is the high-water mark to store and pass back next time.
+- `last_changed_at` is the high-water mark to store and pass back next time. It
+  spans all known students, so a removal advances it too.
+- `students` are the **active** (paid) roster — upsert them. `removed` are
+  student numbers **no longer paid** (e.g. a reverted payment) — unenroll them.
+  Deletes are idempotent, so a never-enrolled number is harmless.
 - Only the fields needed to enrol are returned — **no** parent, contact, or
   date-of-birth data.
 
@@ -94,6 +101,12 @@ Reconciliation only edits **enrollment** membership; it never touches the
 full year continuously across any move; per-class screens attribute each session
 to the class it happened in. A `null` allocation is left alone (it means "not
 allocated", not "un-enrol").
+
+**Removal** works the same way: a student in the `removed` list has their
+**enrollments** deleted (so they drop off the class rosters), but their
+`students` row and `attendances` history are kept — deleting the student would
+cascade and destroy that history. If they pay again later, the next sync simply
+re-enrols them.
 
 ## Configuration
 

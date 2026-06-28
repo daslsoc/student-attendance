@@ -2,11 +2,13 @@
 
 namespace Tests\Feature;
 
+use App\Models\Attendance;
 use App\Models\ClassModel;
 use App\Models\Enrollment;
 use App\Models\IntegrationSyncState;
 use App\Models\Student;
 use App\Models\Subject;
+use App\Models\User;
 use App\Services\RegistrationSyncService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Http;
@@ -28,12 +30,13 @@ class RegistrationSyncTest extends TestCase
         ]);
     }
 
-    private function fakeChanges(array $students, string $lastChangedAt = '2026-06-28 10:00:00', ?int $count = null): void
+    private function fakeChanges(array $students, string $lastChangedAt = '2026-06-28 10:00:00', ?int $count = null, array $removed = []): void
     {
         Http::fake(['https://registration.test/*' => Http::response([
             'last_changed_at' => $lastChangedAt,
             'count' => $count ?? count($students),
             'students' => $students,
+            'removed' => $removed,
         ], 200)]);
     }
 
@@ -162,6 +165,59 @@ class RegistrationSyncTest extends TestCase
         $this->sync();
 
         $this->assertDatabaseHas('enrollments', ['student_number' => '4321', 'subject_id' => $buddhism->id, 'class_id' => $classA->id]);
+    }
+
+    public function test_a_removed_student_is_unenrolled_but_record_and_history_are_kept(): void
+    {
+        $buddhism = Subject::factory()->create(['name' => 'Buddhism']);
+        $classC = ClassModel::factory()->create(['name' => 'Class C']);
+        $teacher = User::factory()->create();
+        Student::create(['student_number' => '4321', 'first_name' => 'Amara', 'last_name' => 'Perera']);
+        Enrollment::create(['student_number' => '4321', 'subject_id' => $buddhism->id, 'class_id' => $classC->id]);
+        Attendance::create([
+            'date' => '2026-06-14',
+            'subject_id' => $buddhism->id,
+            'class_id' => $classC->id,
+            'student_number' => '4321',
+            'teacher_id' => $teacher->id,
+        ]);
+
+        // No students, but 4321 is now in the removed list.
+        $this->fakeChanges([], '2026-06-29 09:00:00', 0, ['4321']);
+        $result = $this->sync();
+
+        // Off the class roster…
+        $this->assertSame(0, Enrollment::where('student_number', '4321')->count());
+        $this->assertSame(1, $result['removed']);
+        // …but the student row and their attendance history survive.
+        $this->assertDatabaseHas('students', ['student_number' => '4321']);
+        $this->assertDatabaseHas('attendances', ['student_number' => '4321', 'date' => '2026-06-14']);
+    }
+
+    public function test_removing_an_unknown_student_is_a_no_op(): void
+    {
+        $this->fakeChanges([], '2026-06-29 09:00:00', 0, ['9999']);
+
+        $result = $this->sync();
+
+        $this->assertSame(0, $result['removed']);
+        $this->assertSame(0, Enrollment::count());
+    }
+
+    public function test_a_dry_run_does_not_unenroll_a_removed_student(): void
+    {
+        $buddhism = Subject::factory()->create(['name' => 'Buddhism']);
+        $classC = ClassModel::factory()->create(['name' => 'Class C']);
+        Student::create(['student_number' => '4321', 'first_name' => 'Amara', 'last_name' => 'Perera']);
+        Enrollment::create(['student_number' => '4321', 'subject_id' => $buddhism->id, 'class_id' => $classC->id]);
+
+        $this->fakeChanges([], '2026-06-29 09:00:00', 0, ['4321']);
+        $result = app(RegistrationSyncService::class)->sync(true);
+
+        // Reports the would-be removal but persists nothing.
+        $this->assertSame(1, $result['removed']);
+        $this->assertTrue($result['dry_run']);
+        $this->assertSame(1, Enrollment::where('student_number', '4321')->count());
     }
 
     public function test_it_records_state_and_sends_since_on_the_next_run(): void

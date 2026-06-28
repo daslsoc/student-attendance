@@ -32,9 +32,9 @@ class RegistrationSync extends Command
         }
 
         if ($dryRun) {
-            $this->info("DRY RUN — nothing written. Received {$result['received']}, would enrol {$result['enrolled']}, would move {$result['moved']}.");
+            $this->info("DRY RUN — nothing written. Received {$result['received']}, would enrol {$result['enrolled']}, would move {$result['moved']}, would remove {$result['removed']}.");
         } else {
-            $this->info("Received {$result['received']}, newly enrolled {$result['enrolled']}, moved {$result['moved']}.");
+            $this->info("Received {$result['received']}, newly enrolled {$result['enrolled']}, moved {$result['moved']}, removed {$result['removed']}.");
         }
 
         foreach ($result['warnings'] as $warning) {
