@@ -22,6 +22,23 @@ class AttendanceTest extends TestCase
         $response->assertRedirect(route('attendance.selection'));
     }
 
+    public function test_marking_form_shows_the_running_total_and_helpers(): void
+    {
+        $this->actingAsTeacher();
+        $subject = Subject::factory()->create();
+        $class = ClassModel::factory()->create();
+        $student = Student::create(['student_number' => 'S001', 'first_name' => 'John', 'last_name' => 'Doe']);
+        Enrollment::create(['student_number' => 'S001', 'subject_id' => $subject->id, 'class_id' => $class->id]);
+
+        $response = $this->get(route('attendance.form', ['subject_id' => $subject->id, 'class_id' => $class->id]));
+
+        $response->assertStatus(200);
+        $response->assertSee('data-selection-count', false);   // running count badge
+        $response->assertSee('data-selection-total', false);
+        $response->assertSee('data-student-filter', false);    // search box
+        $response->assertSee('present');
+    }
+
     public function test_attendance_can_be_submitted_for_present_students(): void
     {
         $teacher = $this->actingAsTeacher();

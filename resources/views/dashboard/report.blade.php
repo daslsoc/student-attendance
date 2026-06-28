@@ -29,7 +29,7 @@
             <p class="text-muted">No attendance recorded for {{ $subject->name }} in {{ now()->year }}.</p>
         @else
             <div class="table-responsive">
-                <table class="table table-bordered table-sm align-middle text-center mb-0">
+                <table id="report-table" class="table table-bordered table-sm align-middle text-center mb-0">
                     <thead class="table-light">
                         <tr>
                             <th class="text-start text-nowrap">Student</th>
@@ -59,4 +59,28 @@
         @endif
     @endif
 </div>
+@endsection
+
+@push('styles')
+<link rel="stylesheet" href="https://cdn.datatables.net/2.1.8/css/dataTables.bootstrap5.min.css">
+@endpush
+
+@section('scripts')
+<script src="https://cdn.datatables.net/2.1.8/js/dataTables.min.js"></script>
+<script src="https://cdn.datatables.net/2.1.8/js/dataTables.bootstrap5.min.js"></script>
+<script>
+  // Searchable, sortable, paginated. Only the Student name and Total days
+  // columns sort meaningfully; the per-date tick columns are left unsorted.
+  new DataTable('#report-table', {
+    paging: true,
+    pageLength: 25,
+    lengthMenu: [[25, 50, 100, -1], [25, 50, 100, 'All']],
+    scrollX: true,
+    order: [],
+    columnDefs: [
+      { orderable: false, targets: '_all' },
+      { orderable: true, targets: [0, -1] },
+    ],
+  });
+</script>
 @endsection

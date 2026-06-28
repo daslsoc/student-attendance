@@ -78,3 +78,71 @@ describe('initStudentSelector', () => {
         expect(b.classList.contains('btn-outline-primary')).toBe(true);
     });
 });
+
+describe('initStudentSelector — teacher helpers', () => {
+    const render = (initial = '[]') => {
+        document.body.innerHTML = `
+            <input type="hidden" data-selection-input value='${initial}'>
+            <input data-student-filter>
+            <button data-select-all>all</button>
+            <button data-clear-all>clear</button>
+            <button data-student="S001">Alice Adams</button>
+            <button data-student="S002">Bob Brown</button>
+            <span data-selection-count>0</span>
+            <span data-selection-total>0</span>
+        `;
+        return {
+            input: document.querySelector('[data-selection-input]'),
+            a: document.querySelector('[data-student="S001"]'),
+            b: document.querySelector('[data-student="S002"]'),
+            filter: document.querySelector('[data-student-filter]'),
+            selectAll: document.querySelector('[data-select-all]'),
+            clearAll: document.querySelector('[data-clear-all]'),
+            count: document.querySelector('[data-selection-count]'),
+            total: document.querySelector('[data-selection-total]'),
+        };
+    };
+
+    beforeEach(() => {
+        document.body.innerHTML = '';
+    });
+
+    it('shows the total and a running selected count', () => {
+        const { a, count, total } = render('[1]');
+        initStudentSelector(document);
+
+        expect(total.textContent).toBe('2');
+        expect(count.textContent).toBe('1'); // seeded id
+        a.click();
+        expect(count.textContent).toBe('2');
+        a.click();
+        expect(count.textContent).toBe('1');
+    });
+
+    it('select-all selects every student, clear empties it', () => {
+        const { input, selectAll, clearAll, count } = render();
+        initStudentSelector(document);
+
+        selectAll.click();
+        expect(JSON.parse(input.value)).toEqual(['S001', 'S002']);
+        expect(count.textContent).toBe('2');
+
+        clearAll.click();
+        expect(JSON.parse(input.value)).toEqual([]);
+        expect(count.textContent).toBe('0');
+    });
+
+    it('the filter hides students whose name does not match', () => {
+        const { a, b, filter } = render();
+        initStudentSelector(document);
+
+        filter.value = 'bob';
+        filter.dispatchEvent(new Event('input'));
+        expect(a.classList.contains('d-none')).toBe(true);
+        expect(b.classList.contains('d-none')).toBe(false);
+
+        filter.value = '';
+        filter.dispatchEvent(new Event('input'));
+        expect(a.classList.contains('d-none')).toBe(false);
+    });
+});

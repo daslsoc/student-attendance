@@ -64,7 +64,7 @@
                 @endif
 
                 <div class="table-responsive">
-                    <table class="table table-bordered table-sm align-middle text-center mb-3">
+                    <table id="edit-table" class="table table-bordered table-sm align-middle text-center mb-3">
                         <thead class="table-light">
                             <tr>
                                 <th class="text-start text-nowrap">Student</th>
@@ -97,4 +97,29 @@
         @endif
     @endif
 </div>
+@endsection
+
+@push('styles')
+<link rel="stylesheet" href="https://cdn.datatables.net/2.1.8/css/dataTables.bootstrap5.min.css">
+@endpush
+
+@section('scripts')
+<script src="https://cdn.datatables.net/2.1.8/js/dataTables.min.js"></script>
+<script src="https://cdn.datatables.net/2.1.8/js/dataTables.bootstrap5.min.js"></script>
+<script>
+  // Search + sort by name. Paging is OFF on purpose: every checkbox must stay
+  // in the DOM so a Save submits the whole grid, not just the current page.
+  if (document.getElementById('edit-table')) {
+    new DataTable('#edit-table', {
+      paging: false,
+      info: false,
+      scrollX: true,
+      order: [],
+      columnDefs: [
+        { orderable: false, targets: '_all' },
+        { orderable: true, targets: [0] },
+      ],
+    });
+  }
+</script>
 @endsection

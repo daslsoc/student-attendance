@@ -12,6 +12,8 @@
   <!-- App JS bundle (student-selector behaviour). Built with `npm run build`;
        see docs/deployment.md — public/build is gitignored and must be uploaded. -->
   @vite(['resources/js/app.js'])
+
+  @stack('styles')
 </head>
 
 <body>
@@ -70,7 +72,9 @@
     @yield('content')
   </div>
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-  <script src="https://code.jquery.com/jquery-3.7.1.slim.min.js"></script>
+  {{-- Full jQuery (not slim): DataTables on the Edit Attendance / Full Year
+       Report pages needs it. --}}
+  <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
 
   @yield('scripts')
 

@@ -52,12 +52,48 @@ export function initStudentSelector(root = document) {
         button.classList.toggle(unselectedClass, !on);
     };
 
+    // Optional helpers for teachers on a phone: a live "selected / total" count,
+    // select-all / clear, and a name filter. Each is a no-op when its element
+    // isn't on the page, so the markup stays opt-in.
+    const countEl = root.querySelector('[data-selection-count]');
+    const totalEl = root.querySelector('[data-selection-total]');
+    if (totalEl) {
+        totalEl.textContent = String(buttons.length);
+    }
+    const refreshCount = () => {
+        if (countEl) {
+            countEl.textContent = String(selected.length);
+        }
+    };
+
+    const commit = () => {
+        input.value = JSON.stringify(selected);
+        buttons.forEach(paint);
+        refreshCount();
+    };
+
     buttons.forEach((button) => {
         paint(button);
         button.addEventListener('click', () => {
             selected = toggleSelection(selected, button.getAttribute('data-student'));
-            input.value = JSON.stringify(selected);
-            buttons.forEach(paint);
+            commit();
+        });
+    });
+    refreshCount();
+
+    const setAll = (on) => {
+        selected = on ? buttons.map((b) => String(b.getAttribute('data-student'))) : [];
+        commit();
+    };
+    root.querySelector('[data-select-all]')?.addEventListener('click', () => setAll(true));
+    root.querySelector('[data-clear-all]')?.addEventListener('click', () => setAll(false));
+
+    const filter = root.querySelector('[data-student-filter]');
+    filter?.addEventListener('input', () => {
+        const query = filter.value.trim().toLowerCase();
+        buttons.forEach((button) => {
+            const match = button.textContent.toLowerCase().includes(query);
+            button.classList.toggle('d-none', query !== '' && !match);
         });
     });
 
