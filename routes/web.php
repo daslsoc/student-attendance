@@ -4,6 +4,7 @@ use App\Http\Controllers\AttendanceController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\BookDistributionController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\HelpController;
 use App\Http\Controllers\RegistrationSyncController;
 use App\Http\Middleware\EnsureTeacherAuthenticated;
 use Illuminate\Support\Facades\Route;
@@ -33,6 +34,10 @@ Route::middleware([EnsureTeacherAuthenticated::class])->group(function () {
 
     Route::get('/registration-sync', [RegistrationSyncController::class, 'show'])->name('integration.status');
     Route::post('/registration-sync', [RegistrationSyncController::class, 'run'])->name('integration.sync');
+
+    // Teacher help guide (screenshots live in public/images/help — see
+    // tests/Browser/HelpScreenshotsCapture.php to regenerate them).
+    Route::get('/help', [HelpController::class, 'index'])->name('help');
 });
 
 Route::get('/', function () {

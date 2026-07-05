@@ -48,6 +48,7 @@
             </ul>
           </div>
           <a class="nav-link" aria-current="page" href="{{route('integration.status')}}">Registration Sync</a>
+          <a class="nav-link" aria-current="page" href="{{route('help')}}">Help</a>
         </div>
       </div>
       @endif
