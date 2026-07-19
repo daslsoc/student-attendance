@@ -6,12 +6,12 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>{{ config('app.name', 'Attendance System') }}</title>
 
-  <!-- Bootstrap CSS -->
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+  @include('partials.favicons')
 
-  <!-- App JS bundle (student-selector behaviour). Built with `npm run build`;
+  <!-- Bootstrap 5 (CSS + JS) and the app's own student-selector behaviour, all
+       bundled by Vite rather than pulled from a CDN. Built with `npm run build`;
        see docs/deployment.md — public/build is gitignored and must be uploaded. -->
-  @vite(['resources/js/app.js'])
+  @vite(['resources/scss/app.scss', 'resources/js/app.js'])
 
   @stack('styles')
 </head>
@@ -72,9 +72,9 @@
 
     @yield('content')
   </div>
-  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-  {{-- Full jQuery (not slim): DataTables on the Edit Attendance / Full Year
-       Report pages needs it. --}}
+  {{-- Bootstrap's own JS now ships in the Vite bundle (see resources/js/app.js).
+       Full jQuery (not slim) stays on a CDN: DataTables on the Edit Attendance /
+       Full Year Report pages needs it. --}}
   <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
 
   @yield('scripts')

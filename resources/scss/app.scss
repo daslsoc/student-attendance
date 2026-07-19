@@ -1,0 +1,14 @@
+// Attendance styles. Bootstrap 5 is the UI framework, bundled through Vite
+// (rather than a CDN) so the app renders correctly offline, pins its own
+// version in package.json, and can be themed by overriding Sass variables
+// above the import below.
+//
+// Kept identical in structure to the sibling school apps (student-registration,
+// tea-roster) so the three look and build the same way.
+
+// Theming hook — set brand colours here, before importing Bootstrap:
+// $primary: #2c6e49;
+
+@import 'bootstrap/scss/bootstrap';
+
+// App-specific overrides go below.
