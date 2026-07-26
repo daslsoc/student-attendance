@@ -242,6 +242,8 @@ class DashboardController extends Controller
             'dates' => ['array'],
             'dates.*' => ['date_format:Y-m-d'],
             'present' => ['array'],
+            'submitted_students' => ['array'],
+            'submitted_students.*' => ['string'],
         ]);
 
         $subjectId = (int) $validated['subject_id'];
@@ -259,10 +261,25 @@ class DashboardController extends Controller
 
         $present = $request->input('present', []);
 
+        // Reconcile ONLY the students whose row was actually part of this
+        // submission. The Edit grid's search box (DataTables) removes
+        // non-matching rows from the page, so their checkboxes — and their
+        // per-row `submitted_students` marker — never reach us. Iterating over
+        // every enrolled student instead would read those absent rows as "all
+        // dates unticked" and delete their attendance history. Intersecting
+        // with the submitted markers keeps filtered-out students untouched, and
+        // makes an empty/marker-less submission a safe no-op rather than a wipe.
+        $submitted = collect($request->input('submitted_students', []))
+            ->map(fn ($n) => (string) $n)
+            ->unique();
+
         $studentNumbers = Enrollment::where('subject_id', $subjectId)
             ->where('class_id', $classId)
             ->pluck('student_number')
-            ->unique();
+            ->map(fn ($n) => (string) $n)
+            ->unique()
+            ->intersect($submitted)
+            ->values();
 
         foreach ($studentNumbers as $studentNumber) {
             foreach ($dates as $date) {

@@ -76,7 +76,15 @@
                         <tbody>
                             @foreach ($students as $student)
                                 <tr>
-                                    <td class="text-start text-nowrap">{{ $student->first_name }} {{ $student->last_name }}</td>
+                                    <td class="text-start text-nowrap">
+                                        {{-- Marks this student's row as part of the submission. It lives
+                                             INSIDE the row so that when the DataTables search hides a row,
+                                             this marker is dropped from the POST too — the server then knows
+                                             to leave that student's records completely alone (see
+                                             DashboardController::updateGrid). Without it, a filtered-out
+                                             student reads as "all dates unticked" and their history is wiped. --}}
+                                        <input type="hidden" name="submitted_students[]" value="{{ $student->student_number }}">
+                                        {{ $student->first_name }} {{ $student->last_name }}</td>
                                     @foreach ($dates as $date)
                                         <td>
                                             <input type="checkbox"
