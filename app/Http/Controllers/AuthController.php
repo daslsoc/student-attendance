@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Mail\LoginLinkMail;
+use App\Models\User;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
@@ -24,7 +25,7 @@ class AuthController extends Controller
         // treated as not being there at all: no link is sent, and the message
         // is the same one an unknown address gets, so this page doesn't become
         // a way to find out who has been removed.
-        $teacher = \App\Models\User::where('email', $request->email)
+        $teacher = User::where('email', $request->email)
             ->whereNull('deactivated_at')
             ->first();
         if (! $teacher) {
@@ -69,7 +70,7 @@ class AuthController extends Controller
     public function loginUsingToken(Request $request, $token)
     {
         try {
-            $teacher = \App\Models\User::where('login_token', $token)
+            $teacher = User::where('login_token', $token)
                 ->where('login_token_expires_at', '>', now())
                 // A link issued before the account was deactivated must stop
                 // working the moment it is.
@@ -102,7 +103,7 @@ class AuthController extends Controller
      * rough order of usefulness and pick the first one their role allows; the
      * help page needs no permission, so there is always an answer.
      */
-    private function landingRoute(\App\Models\User $teacher): string
+    private function landingRoute(User $teacher): string
     {
         $pages = [
             'mark_attendance' => 'attendance.selection',

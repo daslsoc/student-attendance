@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Attendance;
 use App\Models\ClassModel;
+use App\Models\Enrollment;
 use App\Models\Student;
 use App\Models\Subject;
 use Illuminate\Http\Request;
@@ -29,7 +30,7 @@ class AttendanceController extends Controller
         }
 
         // Retrieve enrollments for the selected subject and class.
-        $enrollments = \App\Models\Enrollment::where('subject_id', $subjectId)
+        $enrollments = Enrollment::where('subject_id', $subjectId)
             ->where('class_id', $classId)
             ->get();
 
@@ -37,11 +38,11 @@ class AttendanceController extends Controller
         $studentNumbers = $enrollments->pluck('student_number')->toArray();
 
         // Retrieve only the students enrolled in this subject and class.
-        $students = \App\Models\Student::whereIn('student_number', $studentNumbers)->orderBy('first_name')->get();
+        $students = Student::whereIn('student_number', $studentNumbers)->orderBy('first_name')->get();
 
         // Retrieve existing attendance for the current day for this subject, class, and teacher.
         $today = now()->toDateString();
-        $attendedStudents = \App\Models\Attendance::where('subject_id', $subjectId)
+        $attendedStudents = Attendance::where('subject_id', $subjectId)
             ->where('class_id', $classId)
             ->whereDate('date', $today)
             ->pluck('student_number')
@@ -66,7 +67,7 @@ class AttendanceController extends Controller
         $classId = $request->class_id;
 
         // Get current attendance records for this teacher, subject, and class today.
-        $currentAttendance = \App\Models\Attendance::where('subject_id', $subjectId)
+        $currentAttendance = Attendance::where('subject_id', $subjectId)
             ->where('class_id', $classId)
             ->whereDate('date', $today)
             ->where('teacher_id', $teacherId)
@@ -80,7 +81,7 @@ class AttendanceController extends Controller
         // Remove records that are no longer selected.
         if (! empty($toRemove)) {
             Log::info("$teacherName unselected the following students as previously attended:", $toRemove);
-            \App\Models\Attendance::where('subject_id', $subjectId)
+            Attendance::where('subject_id', $subjectId)
                 ->where('class_id', $classId)
                 ->whereDate('date', $today)
                 ->where('teacher_id', $teacherId)
@@ -90,7 +91,7 @@ class AttendanceController extends Controller
 
         // Insert new attendance records.
         foreach ($toAdd as $studentNumber) {
-            \App\Models\Attendance::create([
+            Attendance::create([
                 'date' => $today,
                 'subject_id' => $subjectId,
                 'class_id' => $classId,

@@ -8,6 +8,7 @@ use App\Models\Enrollment;
 use App\Models\Student;
 use App\Models\Subject;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Carbon;
 use Tests\TestCase;
 
 class AttendanceEditTest extends TestCase
@@ -226,6 +227,6 @@ class AttendanceEditTest extends TestCase
 
         $response->assertStatus(200);
         // The column header renders the added date.
-        $response->assertSee(\Illuminate\Support\Carbon::parse($addDate)->format('j M'));
+        $response->assertSee(Carbon::parse($addDate)->format('j M'));
     }
 }
