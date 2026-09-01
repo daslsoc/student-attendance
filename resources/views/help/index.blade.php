@@ -19,6 +19,8 @@
           <li><a href="#todays-report">Today's Report</a></li>
           <li><a href="#full-year-report">Full Year Report</a></li>
           <li><a href="#sync">Registration Sync</a></li>
+          <li><a href="#teachers">Teachers — adding &amp; removing (administrators)</a></li>
+          <li><a href="#roles">Roles &amp; permissions (administrators)</a></li>
         </ol>
       </div>
     </div>
@@ -34,6 +36,8 @@
       <div class="alert alert-info">
         <strong>Tip:</strong> the email can take a moment to arrive. If you ask for a link more than once, just open the most recent email — every link works. A login lasts a few hours, then you sign in again the same way.
       </div>
+      <p><strong>There's no password to forget</strong> — the emailed link <em>is</em> how you sign in, so if you can read your school email you can always get back in. If the page says your email isn't recognised, ask an administrator to check the address on your account (see <a href="#teachers">Teachers</a>).</p>
+      <p>What you see in the menu depends on your <a href="#roles">role</a>. Most teachers can mark attendance, record books, and see today's report; the reports, the edit grid, and the admin pages are for coordinators and administrators. If a page you expect is missing, your role doesn't include it — ask an administrator.</p>
       <figure class="figure w-100">
         <img src="/images/help/login.png" class="figure-img img-fluid rounded border shadow-sm" alt="The teacher login page with an email box and a Send Login Link button.">
         <figcaption class="figure-caption">The login page — enter your email and press Send Login Link.</figcaption>
@@ -124,6 +128,33 @@
         <img src="/images/help/registration-sync.png" class="figure-img img-fluid rounded border shadow-sm" alt="The Registration Sync page showing when students were last synced and a Sync now button.">
         <figcaption class="figure-caption">Shows when students last synced from registration, with a Sync now button.</figcaption>
       </figure>
+    </section>
+
+    {{-- 8. Teachers --}}
+    <section id="teachers" class="mb-5">
+      <h2 class="h3">8. Teachers — adding &amp; removing</h2>
+      <p class="text-body-secondary"><em>Administrators only — you'll see <strong>Admin → Teachers</strong> in the menu if this applies to you.</em></p>
+      <p>This page lists everyone who can sign in, with their role and whether the account is active.</p>
+      <p><strong>To add someone:</strong> click <strong>Add teacher</strong> and enter their name, email and <a href="#roles">role</a>. There's no password to set — they sign in from the login page with that email address, exactly like everyone else. Make sure the address is one they actually read, because that's where their login links go.</p>
+      <p><strong>To remove someone:</strong> click <strong>Deactivate</strong>. No further login links will be sent to them, any link already sitting in their inbox stops working, and if they're signed in right now they're dropped on their next tap. The account is <strong>not</strong> deleted, on purpose: the audit log needs to keep naming a real person. <strong>Reactivate</strong> undoes it.</p>
+      <div class="alert alert-warning">
+        Two things the system won't let you do, to stop the school being locked out: you can't deactivate <strong>your own</strong> account, and you can't remove the <strong>last</strong> account that can manage teachers. Give someone else that permission first.
+      </div>
+    </section>
+
+    {{-- 9. Roles --}}
+    <section id="roles" class="mb-5">
+      <h2 class="h3">9. Roles &amp; permissions</h2>
+      <p class="text-body-secondary"><em>Administrators only — <strong>Admin → Roles &amp; Permissions</strong>.</em></p>
+      <p>A <strong>role</strong> is a named set of permissions, and every teacher holds exactly one. Change a role and everyone in it changes with it straight away — nobody has to sign in again.</p>
+      <p>Three roles come set up:</p>
+      <ul>
+        <li><strong>Teacher</strong> — marks attendance, records books, sees today's report. This is what everyone gets by default.</li>
+        <li><strong>Coordinator</strong> — all of that plus editing past attendance, the full-year report, the details view, and Registration Sync.</li>
+        <li><strong>Administrator</strong> — everything, plus teacher accounts, roles and the audit log.</li>
+      </ul>
+      <p><strong>Edit</strong> on a role opens a tick-box grid grouped by area — Attendance, Reports, Administration — where you turn each permission on or off. <strong>Add role</strong> makes a new one if none of the three fit. A role can only be deleted once nobody holds it.</p>
+      <p>Every account and permission change is recorded in <strong>Admin → Audit Log</strong>: who did it, when, and what changed. That log is append-only — it can't be edited or deleted from inside the app.</p>
     </section>
 
     <hr>

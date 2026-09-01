@@ -20,8 +20,13 @@ class AuthController extends Controller
     {
         $request->validate(['email' => 'required|email']);
 
-        // Look up the teacher in the users table.
-        $teacher = \App\Models\User::where('email', $request->email)->first();
+        // Look up the teacher in the users table. A deactivated account is
+        // treated as not being there at all: no link is sent, and the message
+        // is the same one an unknown address gets, so this page doesn't become
+        // a way to find out who has been removed.
+        $teacher = \App\Models\User::where('email', $request->email)
+            ->whereNull('deactivated_at')
+            ->first();
         if (! $teacher) {
             return back()->withErrors('Teacher not found.');
         }
@@ -66,6 +71,9 @@ class AuthController extends Controller
         try {
             $teacher = \App\Models\User::where('login_token', $token)
                 ->where('login_token_expires_at', '>', now())
+                // A link issued before the account was deactivated must stop
+                // working the moment it is.
+                ->whereNull('deactivated_at')
                 ->firstOrFail();
         } catch (ModelNotFoundException $e) {
             return redirect('login')->withErrors(['msg' => 'That link has expired. Make sure you have clicked on the latest email or else enter your email and try again.']);
@@ -83,6 +91,35 @@ class AuthController extends Controller
         ]);
         Log::info('Teacher logged in', ['teacher_id' => $teacher->id]);
 
-        return redirect()->route('attendance.selection');
+        return redirect()->route($this->landingRoute($teacher));
+    }
+
+    /**
+     * Where to drop a teacher after signing in.
+     *
+     * Roles mean not everyone can mark attendance any more, so landing on that
+     * page unconditionally would greet some people with a 403. Walk the pages in
+     * rough order of usefulness and pick the first one their role allows; the
+     * help page needs no permission, so there is always an answer.
+     */
+    private function landingRoute(\App\Models\User $teacher): string
+    {
+        $pages = [
+            'mark_attendance' => 'attendance.selection',
+            'mark_book_distribution' => 'book_distribution.selection',
+            'view_summary' => 'attendance.summary',
+            'view_reports' => 'attendance.report',
+            'edit_attendance' => 'attendance.edit',
+            'manage_users' => 'admin.users.index',
+            'manage_roles' => 'admin.roles.index',
+        ];
+
+        foreach ($pages as $atom => $route) {
+            if ($teacher->hasPermission($atom)) {
+                return $route;
+            }
+        }
+
+        return 'help';
     }
 }

@@ -2,6 +2,7 @@
 
 namespace App\Providers;
 
+use Illuminate\Pagination\Paginator;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
@@ -19,6 +20,8 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        //
+        // The UI is Bootstrap 5; without this, paginator links render with
+        // Tailwind classes and look broken (see the audit log page).
+        Paginator::useBootstrapFive();
     }
 }

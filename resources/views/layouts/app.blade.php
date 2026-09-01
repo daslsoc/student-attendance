@@ -31,23 +31,58 @@
       @endif
       @if(session('teacher_logged_in'))
       <div class="collapse navbar-collapse" id="navbarNavAltMarkup">
+        {{-- Each item is shown only to roles carrying the matching permission —
+             the routes enforce the same atoms server-side, so hiding a link is
+             convenience, not the control. --}}
         <div class="navbar-nav">
+          @canany(['mark_attendance', 'edit_attendance'])
           <div class="nav-item dropdown">
             <a class="nav-link dropdown-toggle" href="#" id="attendanceDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">Attendance</a>
             <ul class="dropdown-menu" aria-labelledby="attendanceDropdown">
+              @can('mark_attendance')
               <li><a class="dropdown-item" href="{{route('attendance.selection')}}">New Attendance</a></li>
+              @endcan
+              @can('edit_attendance')
               <li><a class="dropdown-item" href="{{route('attendance.edit')}}">Edit Attendance</a></li>
+              @endcan
             </ul>
           </div>
+          @endcanany
+          @can('mark_book_distribution')
           <a class="nav-link" aria-current="page" href="{{route('book_distribution.selection')}}">Book Distribution</a>
+          @endcan
+          @canany(['view_summary', 'view_reports'])
           <div class="nav-item dropdown">
             <a class="nav-link dropdown-toggle" href="#" id="reportDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">Report</a>
             <ul class="dropdown-menu" aria-labelledby="reportDropdown">
+              @can('view_summary')
               <li><a class="dropdown-item" href="{{route('attendance.summary')}}">Today's Report</a></li>
+              @endcan
+              @can('view_reports')
               <li><a class="dropdown-item" href="{{route('attendance.report')}}">Full Year Report</a></li>
+              @endcan
             </ul>
           </div>
+          @endcanany
+          @can('run_registration_sync')
           <a class="nav-link" aria-current="page" href="{{route('integration.status')}}">Registration Sync</a>
+          @endcan
+          @canany(['manage_users', 'manage_roles', 'view_audit_log'])
+          <div class="nav-item dropdown">
+            <a class="nav-link dropdown-toggle" href="#" id="adminDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">Admin</a>
+            <ul class="dropdown-menu" aria-labelledby="adminDropdown">
+              @can('manage_users')
+              <li><a class="dropdown-item" href="{{route('admin.users.index')}}">Teachers</a></li>
+              @endcan
+              @can('manage_roles')
+              <li><a class="dropdown-item" href="{{route('admin.roles.index')}}">Roles &amp; Permissions</a></li>
+              @endcan
+              @can('view_audit_log')
+              <li><a class="dropdown-item" href="{{route('admin.audit')}}">Audit Log</a></li>
+              @endcan
+            </ul>
+          </div>
+          @endcanany
           <a class="nav-link" aria-current="page" href="{{route('help')}}">Help</a>
         </div>
       </div>
