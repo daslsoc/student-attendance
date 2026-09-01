@@ -1,0 +1,60 @@
+name: Dependabot auto-merge
+
+# Merges a Dependabot PR after the repo's CI workflow(s) complete successfully.
+# Triggered by workflow_run (not pull_request) on purpose:
+#   * it runs in the default-branch context, gated on a CI run that has
+#     already completed;
+#   * it needs no branch-protection rules or plan-gated features.
+# Anything with a failing or pending check is left open for a human; majors
+# merge too when tests pass (user decision 2026-09-01). Installed/parameterised
+# by the dependabot skill's rollout.sh.
+
+on:
+  workflow_run:
+    workflows: ["Tests"]
+    types: [completed]
+
+permissions:
+  contents: write
+  pull-requests: write
+  actions: write
+  checks: read
+  statuses: read
+
+jobs:
+  merge:
+    if: >-
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.event == 'pull_request' &&
+      startsWith(github.event.workflow_run.head_branch, 'dependabot/')
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      HEAD_BRANCH: ${{ github.event.workflow_run.head_branch }}
+      POST_MERGE_DISPATCH: ""
+    steps:
+      - name: Locate the PR
+        id: pr
+        run: |
+          pr=$(gh pr list --repo "$GITHUB_REPOSITORY" --head "$HEAD_BRANCH" --state open --json number,title,body,author \
+               --jq 'map(select(.author.login == "app/dependabot" or .author.login == "dependabot"))[0]')
+          if [ -z "$pr" ] || [ "$pr" = "null" ]; then
+            echo "no open Dependabot PR for $HEAD_BRANCH"; echo "skip=true" >> "$GITHUB_OUTPUT"; exit 0
+          fi
+          echo "number=$(jq -r .number <<<"$pr")" >> "$GITHUB_OUTPUT"
+
+      - name: Wait for every other check on the PR to pass
+        if: steps.pr.outputs.skip != 'true'
+        run: gh pr checks "${{ steps.pr.outputs.number }}" --repo "$GITHUB_REPOSITORY" --watch --fail-fast
+
+      - name: Merge
+        if: steps.pr.outputs.skip != 'true'
+        run: |
+          n="${{ steps.pr.outputs.number }}"
+          # --auto only exists with branch protection; try a direct squash merge first.
+          gh pr merge "$n" --repo "$GITHUB_REPOSITORY" --squash --delete-branch \
+            || gh pr merge "$n" --repo "$GITHUB_REPOSITORY" --squash --delete-branch --auto
+
+      - name: Trigger deploy (push events made with GITHUB_TOKEN do not fire workflows)
+        if: steps.pr.outputs.skip != 'true' && env.POST_MERGE_DISPATCH != ''
+        run: gh workflow run "$POST_MERGE_DISPATCH" --repo "$GITHUB_REPOSITORY" --ref "${{ github.event.workflow_run.repository.default_branch }}"
