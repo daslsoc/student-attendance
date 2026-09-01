@@ -1,0 +1,93 @@
+name: Tests
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  test:
+    name: PHPUnit
+    runs-on: ubuntu-latest
+    services:
+      mysql:
+        image: mysql:8
+        env:
+          MYSQL_ROOT_PASSWORD: secret
+          MYSQL_DATABASE: attendance_test
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h localhost -u root -psecret"
+          --health-interval=10s --health-timeout=5s --health-retries=10
+    env:
+      MAIL_FROM_ADDRESS: ci@example.com
+      MAIL_FROM_NAME: CI
+      DB_HOST: 127.0.0.1
+      DB_PORT: "3306"
+      DB_USERNAME: root
+      DB_PASSWORD: secret
+      DB_DATABASE: attendance_test
+    steps:
+      - uses: actions/checkout@v7
+      - name: Map service hostnames to localhost
+        run: echo "127.0.0.1 mysql db" | sudo tee -a /etc/hosts
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: mbstring, dom, curl, xml, fileinfo, bcmath, intl, pdo_mysql
+          coverage: none
+          tools: composer:v2
+      - name: Copy environment
+        run: |
+          cp .env.example .env
+      - name: Install Composer dependencies
+        run: composer install --no-interaction --prefer-dist --no-progress
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Build frontend
+        run: |
+          npm ci
+          npm run build
+      - name: Generate app key
+        run: php artisan key:generate
+      - name: Run tests
+        run: php artisan test
+      - name: Audit Composer dependencies
+        run: composer audit --no-interaction
+
+  lint:
+    name: Pint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          coverage: none
+          tools: composer:v2
+      - name: Copy environment
+        run: cp .env.example .env
+      - name: Install Composer dependencies
+        run: composer install --no-interaction --prefer-dist --no-progress
+      - name: Check code style
+        run: vendor/bin/pint --test
+
+  js:
+    name: Vitest
+    runs-on: ubuntu-latest
+    env:
+      LARAVEL_BYPASS_ENV_CHECK: "1"
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - run: npm run test
