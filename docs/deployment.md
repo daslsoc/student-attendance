@@ -10,7 +10,7 @@ Work through this list in order.
 
 ## Before the first deploy
 
-1. **PHP version.** Confirm the host runs **PHP >= 8.2** (Laravel 12 requires
+1. **PHP version.** Confirm the host runs **PHP >= 8.3** (Laravel 13 requires
    it). If it's older, you cannot deploy — get it upgraded first.
 2. **Document root = `public/`.** Point the domain/subdomain docroot at the
    project's `public/` directory. If the server serves the project root

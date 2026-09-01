@@ -1,6 +1,6 @@
 # Student Attendance
 
-A small Laravel 12 app for the Dhamma and Sinhala School of Canberra. Teachers
+A small Laravel 13 app for the Dhamma and Sinhala School of Canberra. Teachers
 log in with a one-time email link, mark which students are present for a chosen
 subject + class, and record book distribution. Daily and full-year reports roll
 the data up per subject and class, and paid students enrol automatically from
@@ -62,7 +62,7 @@ that `(subject, class)`.
 
 ## Stack
 
-- Laravel 12, PHP 8.2, MySQL (production). Local dev uses a sqlite file by
+- Laravel 13, PHP 8.3, MySQL (production). Local dev uses a sqlite file by
   default; tests and Dusk run against MySQL for prod parity.
 - Bootstrap 5 + a small Vite-bundled JS module (`resources/js/studentSelector.js`)
   for the tap-to-toggle behaviour; the Edit Attendance and Full Year Report

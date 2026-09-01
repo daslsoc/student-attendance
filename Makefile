@@ -13,7 +13,7 @@
 DC       := docker compose
 DC_DUSK  := docker compose -f docker-compose.yml -f docker-compose.dusk.yml
 # Plain app one-off (used for composer/artisan/tests). Xdebug off keeps it snappy.
-APP      := $(DC) run --rm -e XDEBUG_MODE=off app
+APP      := $(DC) run --rm -u $(shell id -u):$(shell id -g) -e COMPOSER_HOME=/tmp/composer -e XDEBUG_MODE=off app
 # Coverage needs the Xdebug coverage driver.
 APP_COV  := $(DC) run --rm -e XDEBUG_MODE=coverage app
 
