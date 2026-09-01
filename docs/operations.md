@@ -10,6 +10,12 @@ database.
 Schema at a glance:
 
 - `users` — teachers (login by magic link; `login_token`, `login_token_expires_at`).
+  `role_id` points at their single role; `deactivated_at` is the off switch
+  ("removed" accounts keep their row for the audit trail).
+- `roles` — named permission sets. `permission_list` is a comma-bounded CSV of
+  atoms from `config/permissions.php` (`,a,b,c,`).
+- `activity_log_entries` — append-only audit trail of account/permission
+  changes, shown at *Admin → Audit Log*.
 - `students` — roster, primary key is the string `student_number`.
 - `subjects`, `classes` — the two axes a session is selected by.
 - `enrollments` — which `student_number` is in which `(subject_id, class_id)`.
@@ -62,16 +68,26 @@ docker compose exec app php artisan db:seed --class=DemoDataSeeder
 
 ## Create a teacher (so they can log in)
 
+Use the app: **Admin → Teachers → Add teacher** (any account whose role carries
+`manage_users`). Name, email and role is all it takes — there are no passwords,
+and the change is audit-logged. Removing someone is **Deactivate** on the same
+page, never a SQL `DELETE`.
+
+If you must do it from the console instead (e.g. bootstrapping a bare
+database), note that `role_id` is deliberately not mass-assignable:
+
 ```php
 php artisan tinker
-\App\Models\User::create([
-    'name' => 'Teacher Name',
-    'email' => 'teacher@example.com',
-    'password' => bcrypt('a-strong-password'), // unused by the magic-link flow but required by the column
-]);
+$u = new \App\Models\User;
+$u->name = 'Teacher Name';
+$u->email = 'teacher@example.com';
+$u->role_id = \App\Models\Role::where('name', 'Teacher')->value('id');
+$u->save();
 ```
 
-Only people in `users` can request a login link.
+Only active people in `users` can request a login link (a deactivated account
+is treated as unknown), and a teacher with no role can sign in but reach
+nothing beyond the Help page.
 
 ## Enrollments (who appears on a subject/class form)
 

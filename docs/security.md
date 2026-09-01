@@ -24,6 +24,31 @@ infrastructure/hosting.
   flag and the token-expiry timestamp. Only people seeded into `users` can
   obtain a session (via the magic-link flow).
 
+## Roles & permissions (added after this review)
+
+The later roles feature tightened the model reviewed above:
+
+- Every signed-in route additionally requires a **permission atom**
+  (`->middleware('can:...')` per route, gates defined from
+  `config/permissions.php`); hiding a nav link is convenience, the route check
+  is the control.
+- `EnsureTeacherAuthenticated` re-checks the account **on every request**, so
+  deactivating a teacher drops their live session immediately; deactivation
+  also nulls any outstanding login token, and the login form answers
+  identically for deactivated and unknown emails (no enumeration of removed
+  accounts).
+- `users.role_id`, `users.deactivated_at` and `roles.permission_list` are
+  **not mass-assignable** — privilege changes go only through the admin
+  controllers, which write an append-only audit trail
+  (`activity_log_entries`, no edit/delete path in the app). Unknown permission
+  atoms in a form post are rejected against the registry.
+- Lockout guards (`App\Support\AdminSafety`) refuse any change — deactivation,
+  role move, or role edit — that would leave no active account holding
+  `manage_users`.
+
+Covered by `tests/Feature/UserAdminTest.php` and
+`tests/Feature/RoleAdminTest.php`.
+
 ## Fixes applied in this change
 
 - **Dev/production database wipe (critical).** `phpunit.xml` used `<env>` tags,

@@ -25,6 +25,8 @@ Work through this list in order.
    - `MAIL_*` for the real mailer (the login-link email must actually send)
    - `custom.*` vars — `TOKEN_EXPIRY_HOURS`, `MANAGEMENT_TEAM_NAME`
      (see `config/custom.php`)
+   - `ROLE_ROLLOUT_ADMIN_EMAIL` — **set before the deploy that carries the
+     roles migrations** (see "One-time: roles rollout" below).
    - `QUEUE_CONNECTION` — see step 6.
 
 ## What to upload (and what NOT to)
@@ -55,6 +57,25 @@ Work through this list in order.
    ```
    Otherwise teachers would request a link and never receive it.
 
+## One-time: roles rollout
+
+The deploy that first carries the `2026_07_25_*` roles migrations changes who
+can see what. The migration reads `ROLE_ROLLOUT_ADMIN_EMAIL` **once**, as it
+runs:
+
+- The account with that email becomes the **Administrator**; every other
+  account lands on **Teacher** (mark attendance, record books, today's
+  summary — *narrower than before*: no reports, no edit grid, no sync).
+- If the variable is unset or matches no account, the **oldest account** is
+  promoted instead and a warning is logged — check `storage/logs/laravel.log`
+  and confirm who ended up with it.
+- Afterwards, promote the coordinators by hand in *Admin → Teachers* (the
+  seeded **Coordinator** role restores their old access). Changing the env var
+  later does nothing.
+
+So: put `ROLE_ROLLOUT_ADMIN_EMAIL=<the admin's login email>` in the prod
+`.env` **before** running `php artisan migrate --force` for that deploy.
+
 ## Every deploy
 
 7. **Run after uploading files:**
@@ -79,6 +100,8 @@ Work through this list in order.
 - Request a login link for a known teacher and confirm the email arrives.
 - Click the link and confirm it lands on the attendance selection page.
 - Mark a student present, submit, and confirm it shows in the summary.
+- Sign in as the administrator and confirm the **Admin** menu is there and
+  *Admin → Teachers* lists the accounts with the roles you expect.
 - Check the log isn't filling with errors: `storage/logs/laravel.log`.
 
 ## Seeding students
