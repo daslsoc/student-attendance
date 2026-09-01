@@ -71,6 +71,8 @@ jobs:
           php-version: '8.3'
           coverage: none
           tools: composer:v2
+      - name: Copy environment
+        run: cp .env.example .env
       - name: Install Composer dependencies
         run: composer install --no-interaction --prefer-dist --no-progress
       - name: Check code style
