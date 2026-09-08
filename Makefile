@@ -171,3 +171,16 @@ logs: ## Tail logs (all services, or pass SERVICE=app for one)
 .PHONY: mysql
 mysql: ## Open mysql client. Defaults to attendance_db; override with DB=attendance_test
 	$(DC) exec db sh -c 'mysql -uroot -psecret $(or $(DB),attendance_db)'
+
+## --- code quality ---
+
+.PHONY: sonar
+sonar: db-up ## Regenerate coverage and push a scan to local SonarQube (http://localhost:9000)
+	$(DC) run --rm -e XDEBUG_MODE=coverage app vendor/bin/phpunit --coverage-clover tests/clover.xml
+	npm run test:coverage
+	docker run --rm --network host -u "$$(id -u):$$(id -g)" \
+		-e SONAR_HOST_URL=http://localhost:9000 \
+		-e SONAR_TOKEN=$$(awk '/^scanner_token:/{print $$2}' $$HOME/workspace/sonarqube/.admin-credentials) \
+		-e SONAR_USER_HOME=/tmp/.sonar \
+		-v "$$PWD:/var/www/html" -w /var/www/html \
+		sonarsource/sonar-scanner-cli
