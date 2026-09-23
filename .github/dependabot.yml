@@ -1,6 +1,7 @@
 # Dependabot version updates. Security updates are enabled separately in
 # repo Settings > Code security. Minor+patch bumps are grouped into one weekly
-# PR per ecosystem so CI runs once; majors arrive as individual PRs for review.
+# PR per ecosystem so CI runs once; majors arrive as individual PRs (peer-locked
+# npm families are grouped so they can actually install).
 # Ecosystem blocks are appended by rollout.sh based on what the repo contains.
 version: 2
 updates:
@@ -16,6 +17,24 @@ updates:
     schedule:
       interval: weekly
     groups:
+      # Peer-locked families: their majors must land in ONE PR or `npm ci`
+      # fails with ERESOLVE (vitest 5 needs @vitest/coverage-v8 5, fullcalendar
+      # plugins pin core, datatables.net-dt pins datatables.net, ...).
+      vitest:
+        patterns: [vitest, "@vitest/*"]
+        update-types: [major]
+      vite:
+        patterns: [vite, laravel-vite-plugin, "@vitejs/*"]
+        update-types: [major]
+      tailwind:
+        patterns: [tailwindcss, "@tailwindcss/*"]
+        update-types: [major]
+      fullcalendar:
+        patterns: ["@fullcalendar/*"]
+        update-types: [major]
+      datatables:
+        patterns: ["datatables.net*"]
+        update-types: [major]
       npm-minor-patch:
         update-types: [minor, patch]
   - package-ecosystem: github-actions
