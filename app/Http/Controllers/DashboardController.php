@@ -13,6 +13,9 @@ use Illuminate\Support\Facades\DB;
 
 class DashboardController extends Controller
 {
+    /** Head-count expression shared by the enrolled / present summaries. */
+    private const DISTINCT_STUDENTS = 'COUNT(DISTINCT student_number) as total';
+
     /**
      * Dashboard of today's attendance, grouped into a card per subject. Each
      * card shows the subject total (present / enrolled) and, below it, every
@@ -26,20 +29,20 @@ class DashboardController extends Controller
         $classNames = ClassModel::pluck('name', 'id');
 
         // Distinct enrolled students, per subject+class and per subject.
-        $enrolledByClass = Enrollment::select('subject_id', 'class_id', DB::raw('COUNT(DISTINCT student_number) as total'))
+        $enrolledByClass = Enrollment::select('subject_id', 'class_id', DB::raw(self::DISTINCT_STUDENTS))
             ->groupBy('subject_id', 'class_id')
             ->get();
-        $enrolledBySubject = Enrollment::select('subject_id', DB::raw('COUNT(DISTINCT student_number) as total'))
+        $enrolledBySubject = Enrollment::select('subject_id', DB::raw(self::DISTINCT_STUDENTS))
             ->groupBy('subject_id')
             ->pluck('total', 'subject_id');
 
         // Distinct students present today, per subject+class and per subject.
-        $presentByClass = Attendance::select('subject_id', 'class_id', DB::raw('COUNT(DISTINCT student_number) as total'))
+        $presentByClass = Attendance::select('subject_id', 'class_id', DB::raw(self::DISTINCT_STUDENTS))
             ->whereDate('date', $today)
             ->groupBy('subject_id', 'class_id')
             ->get()
             ->keyBy(fn ($row) => $row->subject_id.'-'.$row->class_id);
-        $presentBySubject = Attendance::select('subject_id', DB::raw('COUNT(DISTINCT student_number) as total'))
+        $presentBySubject = Attendance::select('subject_id', DB::raw(self::DISTINCT_STUDENTS))
             ->whereDate('date', $today)
             ->groupBy('subject_id')
             ->pluck('total', 'subject_id');

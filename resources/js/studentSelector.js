@@ -47,7 +47,7 @@ export function initStudentSelector(root = document) {
     const buttons = Array.from(root.querySelectorAll('[data-student]'));
 
     const paint = (button) => {
-        const on = selected.includes(String(button.getAttribute('data-student')));
+        const on = selected.includes(String(button.dataset.student));
         button.classList.toggle(selectedClass, on);
         button.classList.toggle(unselectedClass, !on);
     };
@@ -75,14 +75,14 @@ export function initStudentSelector(root = document) {
     buttons.forEach((button) => {
         paint(button);
         button.addEventListener('click', () => {
-            selected = toggleSelection(selected, button.getAttribute('data-student'));
+            selected = toggleSelection(selected, button.dataset.student);
             commit();
         });
     });
     refreshCount();
 
     const setAll = (on) => {
-        selected = on ? buttons.map((b) => String(b.getAttribute('data-student'))) : [];
+        selected = on ? buttons.map((b) => String(b.dataset.student)) : [];
         commit();
     };
     root.querySelector('[data-select-all]')?.addEventListener('click', () => setAll(true));
