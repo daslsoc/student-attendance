@@ -37,7 +37,7 @@
         <div class="navbar-nav">
           @canany(['mark_attendance', 'edit_attendance'])
           <div class="nav-item dropdown">
-            <a class="nav-link dropdown-toggle" href="#" id="attendanceDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">Attendance</a>
+            <button type="button" class="nav-link dropdown-toggle" id="attendanceDropdown" data-bs-toggle="dropdown" aria-expanded="false">Attendance</button>
             <ul class="dropdown-menu" aria-labelledby="attendanceDropdown">
               @can('mark_attendance')
               <li><a class="dropdown-item" href="{{route('attendance.selection')}}">New Attendance</a></li>
@@ -53,7 +53,7 @@
           @endcan
           @canany(['view_summary', 'view_reports'])
           <div class="nav-item dropdown">
-            <a class="nav-link dropdown-toggle" href="#" id="reportDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">Report</a>
+            <button type="button" class="nav-link dropdown-toggle" id="reportDropdown" data-bs-toggle="dropdown" aria-expanded="false">Report</button>
             <ul class="dropdown-menu" aria-labelledby="reportDropdown">
               @can('view_summary')
               <li><a class="dropdown-item" href="{{route('attendance.summary')}}">Today's Report</a></li>
@@ -69,7 +69,7 @@
           @endcan
           @canany(['manage_users', 'manage_roles', 'view_audit_log'])
           <div class="nav-item dropdown">
-            <a class="nav-link dropdown-toggle" href="#" id="adminDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">Admin</a>
+            <button type="button" class="nav-link dropdown-toggle" id="adminDropdown" data-bs-toggle="dropdown" aria-expanded="false">Admin</button>
             <ul class="dropdown-menu" aria-labelledby="adminDropdown">
               @can('manage_users')
               <li><a class="dropdown-item" href="{{route('admin.users.index')}}">Teachers</a></li>

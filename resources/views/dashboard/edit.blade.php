@@ -91,6 +91,7 @@
                                                    class="form-check-input"
                                                    name="present[{{ $student->student_number }}][{{ $date }}]"
                                                    value="1"
+                                                   aria-label="{{ $student->first_name }} {{ $student->last_name }} present on {{ \Illuminate\Support\Carbon::parse($date)->format('j M') }}"
                                                    @checked(! empty($present[$student->student_number][$date]))>
                                         </td>
                                     @endforeach
@@ -108,12 +109,12 @@
 @endsection
 
 @push('styles')
-<link rel="stylesheet" href="https://cdn.datatables.net/2.1.8/css/dataTables.bootstrap5.min.css">
+<link rel="stylesheet" href="https://cdn.datatables.net/2.1.8/css/dataTables.bootstrap5.min.css" integrity="sha384-3ptzuE+Rcpo/oIGgcQ40Oz3iGZ2GxGeQ/RZEyYncPivDl3lFBCI4eiS7PZAghYuS" crossorigin="anonymous">
 @endpush
 
 @section('scripts')
-<script src="https://cdn.datatables.net/2.1.8/js/dataTables.min.js"></script>
-<script src="https://cdn.datatables.net/2.1.8/js/dataTables.bootstrap5.min.js"></script>
+<script src="https://cdn.datatables.net/2.1.8/js/dataTables.min.js" integrity="sha384-MgwUq0TVErv5Lkj/jIAgQpC+iUIqwhwXxJMfrZQVAOhr++1MR02yXH8aXdPc3fk0" crossorigin="anonymous"></script>
+<script src="https://cdn.datatables.net/2.1.8/js/dataTables.bootstrap5.min.js" integrity="sha384-G85lmdZCo2WkHaZ8U1ZceHekzKcg37sFrs4St2+u/r2UtfvSDQmQrkMsEx4Cgv/W" crossorigin="anonymous"></script>
 <script>
   // Search + sort by name. Paging is OFF on purpose: every checkbox must stay
   // in the DOM so a Save submits the whole grid, not just the current page.
