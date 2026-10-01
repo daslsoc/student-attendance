@@ -42,5 +42,7 @@ auth.json
 /.zed
 
 production_seeding.sql
-sonar-project.properties
 tests/clover.xml
+
+# local SonarQube scanner artifacts (make sonar)
+.scannerwork/
