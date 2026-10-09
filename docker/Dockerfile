@@ -1,5 +1,13 @@
 FROM php:8.3-fpm
 
+# Run PHP-FPM's www-data as the host user (uid/gid 1000 by default). The source
+# tree is bind-mounted from the host, so the build-time chown below is hidden at
+# runtime; matching uids lets Laravel write storage/ and bootstrap/cache, and
+# files it creates stay owned by the host user.
+ARG UID=1000
+ARG GID=1000
+RUN groupmod -o -g ${GID} www-data && usermod -o -u ${UID} -g ${GID} www-data
+
 # Set working directory
 WORKDIR /var/www/html
 
