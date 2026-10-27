@@ -55,6 +55,12 @@ return [
             'collation' => env('DB_COLLATION', 'utf8mb4_unicode_ci'),
             'prefix' => '',
             'prefix_indexes' => true,
+            // MySQL session time zone. Set it to the app timezone so TIMESTAMP
+            // columns store real instants and DB defaults (CURRENT_TIMESTAMP)
+            // agree with PHP's now(). On an existing database run
+            // `php artisan db:convert-timestamps` ONCE before setting it;
+            // unset = server default (the legacy behaviour).
+            'timezone' => env('DB_TIMEZONE'),
             'strict' => true,
             'engine' => null,
             'options' => extension_loaded('pdo_mysql') ? array_filter([
