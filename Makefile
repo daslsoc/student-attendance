@@ -27,6 +27,11 @@ help: ## Show available targets
 build: ## Rebuild every image (run once after pulling)
 	$(DC) build
 
+.PHONY: deps
+deps: ## Sync vendor/ + node_modules/ to the lock files (idempotent; the nightly sweep runs it after pulling)
+	$(APP) composer install --no-interaction --no-progress
+	npm ci --no-audit --no-fund
+
 .PHONY: install
 install: ## Install PHP (in container) + JS (host) dependencies, with dev deps
 	$(APP) composer install --no-interaction
