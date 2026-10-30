@@ -1,4 +1,4 @@
-FROM php:8.3-fpm
+FROM php:8.4-fpm
 
 # Run PHP-FPM's www-data as the host user (uid/gid 1000 by default). The source
 # tree is bind-mounted from the host, so the build-time chown below is hidden at

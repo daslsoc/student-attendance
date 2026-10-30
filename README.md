@@ -62,7 +62,7 @@ that `(subject, class)`.
 
 ## Stack
 
-- Laravel 13, PHP 8.3, MySQL (production). Local dev uses a sqlite file by
+- Laravel 13, PHP 8.4, MySQL (production). Local dev uses a sqlite file by
   default; tests and Dusk run against MySQL for prod parity.
 - Bootstrap 5 + a small Vite-bundled JS module (`resources/js/studentSelector.js`)
   for the tap-to-toggle behaviour; the Edit Attendance and Full Year Report
