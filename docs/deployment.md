@@ -10,8 +10,11 @@ Work through this list in order.
 
 ## Before the first deploy
 
-1. **PHP version.** Confirm the host runs **PHP >= 8.3** (Laravel 13 requires
-   it). If it's older, you cannot deploy — get it upgraded first.
+1. **PHP version.** Confirm the host runs **PHP >= 8.4** (composer.json
+   requires it). If it's older, you cannot deploy — get it upgraded first.
+   On DreamHost set the domain to PHP 8.4 in the panel, and on the shell use
+   `php-8.4` (plain `php` is 8.2): wherever this guide says `php artisan`,
+   run `php-8.4 artisan`, including in crontab.
 2. **Document root = `public/`.** Point the domain/subdomain docroot at the
    project's `public/` directory. If the server serves the project root
    instead, your `.env` and source become web-readable. (On cPanel-style hosts
