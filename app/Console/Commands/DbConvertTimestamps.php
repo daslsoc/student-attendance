@@ -55,10 +55,23 @@ class DbConvertTimestamps extends Command
         $from = $this->option('from') ?: config('app.timezone');
         $dry = (bool) $this->option('dry-run');
 
+        $probe = $this->preflight($from, $dry);
+        $result = $probe === null ? null : $this->convert($this->timestampColumnsByTable(), $from, $dry);
+        if ($result === null) {
+            return self::FAILURE;
+        }
+        $this->report($result, $from, $probe, $dry);
+
+        return self::SUCCESS;
+    }
+
+    /** The server/session zones, or null (after printing why) when the run must not go ahead. */
+    private function preflight(string $from, bool $dry): ?object
+    {
         if (! $dry && ! $this->option('force') && Storage::disk('local')->exists(self::MARKER)) {
             $this->error('Already converted ('.self::MARKER.' on the local disk). Running twice shifts every value again; use --force only if you know the marker is stale.');
 
-            return self::FAILURE;
+            return null;
         }
 
         $probe = DB::selectOne(
@@ -68,12 +81,21 @@ class DbConvertTimestamps extends Command
         if ($probe->ok === null) {
             $this->error("MySQL cannot convert from '{$from}': time zone tables not loaded or zone unknown.");
 
-            return self::FAILURE;
+            return null;
         }
         $this->info("Server zone {$probe->server}, session {$probe->session}; existing values were written in {$from}.");
 
-        // Every TIMESTAMP column, plus any DATETIME column with ON UPDATE
-        // CURRENT_TIMESTAMP (assigned to itself so the UPDATE does not bump it).
+        return $probe;
+    }
+
+    /**
+     * Every TIMESTAMP column, plus any DATETIME column with ON UPDATE
+     * CURRENT_TIMESTAMP (assigned to itself so the UPDATE does not bump it).
+     *
+     * @return array<string, list<object>>
+     */
+    private function timestampColumnsByTable(): array
+    {
         $columns = DB::select(
             "SELECT TABLE_NAME AS t, COLUMN_NAME AS c, DATA_TYPE AS type
                FROM information_schema.COLUMNS
@@ -85,66 +107,98 @@ class DbConvertTimestamps extends Command
         foreach ($columns as $col) {
             $byTable[$col->t][] = $col;
         }
-        if ($byTable === []) {
-            $this->info('No TIMESTAMP columns in this database; nothing to do.');
 
-            return self::SUCCESS;
+        return $byTable;
+    }
+
+    /**
+     * Convert (or, on a dry run, count) every table in one transaction.
+     *
+     * @param  array<string, list<object>>  $byTable
+     * @return array{rows: int, converted: array<string, list<string>>, empty: bool}|null null when it failed and nothing changed
+     */
+    private function convert(array $byTable, string $from, bool $dry): ?array
+    {
+        $result = ['rows' => 0, 'converted' => [], 'empty' => $byTable === []];
+        if ($result['empty']) {
+            return $result;
         }
 
-        $rows = 0;
-        $converted = [];
         DB::beginTransaction();
         try {
             foreach ($byTable as $table => $cols) {
-                $q = fn (string $ident) => '`'.str_replace('`', '', $ident).'`';
-                $sets = [];
-                $names = [];
-                foreach ($cols as $col) {
-                    $c = $q($col->c);
-                    if ($col->type === 'timestamp') {
-                        // TIMESTAMP cannot hold anything before 1970-01-01 00:00:01 UTC;
-                        // leave the zero/epoch sentinels some apps use alone.
-                        $sets[] = "{$c} = IF({$c} >= '1971-01-01', CONVERT_TZ({$c}, ?, 'SYSTEM'), {$c})";
-                        $names[] = $col->c;
-                    } else {
-                        $sets[] = "{$c} = {$c}";
-                    }
-                }
+                [$sets, $names] = $this->assignments($cols);
                 if ($names === []) {
                     continue;
                 }
-                $n = (int) DB::selectOne('SELECT COUNT(*) AS n FROM '.$q($table))->n;
+                $n = (int) DB::selectOne('SELECT COUNT(*) AS n FROM '.self::quote($table))->n;
                 if (! $dry && $n > 0) {
-                    DB::update('UPDATE '.$q($table).' SET '.implode(', ', $sets), array_fill(0, count($names), $from));
+                    DB::update('UPDATE '.self::quote($table).' SET '.implode(', ', $sets), array_fill(0, count($names), $from));
                 }
                 $this->line(sprintf('  %-32s %8d rows   %s', $table, $n, implode(', ', $names)));
-                $rows += $n;
-                $converted[$table] = $names;
+                $result['rows'] += $n;
+                $result['converted'][$table] = $names;
             }
             $dry ? DB::rollBack() : DB::commit();
         } catch (Throwable $e) {
             DB::rollBack();
             $this->error('Failed, nothing changed: '.$e->getMessage());
 
-            return self::FAILURE;
+            return null;
         }
 
-        if ($dry) {
-            $this->info("Dry run: {$rows} rows across ".count($converted).' tables would be converted.');
+        return $result;
+    }
 
-            return self::SUCCESS;
+    /**
+     * SET clauses for one table, and the TIMESTAMP columns they convert.
+     *
+     * @param  list<object>  $cols
+     * @return array{0: list<string>, 1: list<string>}
+     */
+    private function assignments(array $cols): array
+    {
+        $sets = [];
+        $names = [];
+        foreach ($cols as $col) {
+            $c = self::quote($col->c);
+            if ($col->type === 'timestamp') {
+                // TIMESTAMP cannot hold anything before 1970-01-01 00:00:01 UTC;
+                // leave the zero/epoch sentinels some apps use alone.
+                $sets[] = "{$c} = IF({$c} >= '1971-01-01', CONVERT_TZ({$c}, ?, 'SYSTEM'), {$c})";
+                $names[] = $col->c;
+            } else {
+                $sets[] = "{$c} = {$c}";
+            }
         }
 
-        Storage::disk('local')->put(self::MARKER, json_encode([
-            'converted_at' => now()->toIso8601String(),
-            'from' => $from,
-            'server_zone' => $probe->server,
-            'tables' => $converted,
-            'rows' => $rows,
-        ], JSON_PRETTY_PRINT));
-        $this->info("Converted {$rows} rows across ".count($converted).' tables.');
-        $this->warn("Now set DB_TIMEZONE={$from} in .env (then php artisan config:clear if config is cached) and bring the app back up.");
+        return [$sets, $names];
+    }
 
-        return self::SUCCESS;
+    /** @param  array{rows: int, converted: array<string, list<string>>, empty: bool}  $result */
+    private function report(array $result, string $from, object $probe, bool $dry): void
+    {
+        $rows = $result['rows'];
+        $tables = count($result['converted']);
+        if ($result['empty']) {
+            $this->info('No TIMESTAMP columns in this database; nothing to do.');
+        } elseif ($dry) {
+            $this->info("Dry run: {$rows} rows across {$tables} tables would be converted.");
+        } else {
+            Storage::disk('local')->put(self::MARKER, json_encode([
+                'converted_at' => now()->toIso8601String(),
+                'from' => $from,
+                'server_zone' => $probe->server,
+                'tables' => $result['converted'],
+                'rows' => $rows,
+            ], JSON_PRETTY_PRINT));
+            $this->info("Converted {$rows} rows across {$tables} tables.");
+            $this->warn("Now set DB_TIMEZONE={$from} in .env (then php artisan config:clear if config is cached) and bring the app back up.");
+        }
+    }
+
+    private static function quote(string $ident): string
+    {
+        return '`'.str_replace('`', '', $ident).'`';
     }
 }
