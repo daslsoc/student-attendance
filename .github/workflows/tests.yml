@@ -59,6 +59,8 @@ jobs:
         run: php artisan test
       - name: Audit Composer dependencies
         run: composer audit --no-interaction
+      - name: Audit npm dependencies (runtime, high+)
+        run: npm audit --omit=dev --audit-level=high
 
   lint:
     name: Pint
