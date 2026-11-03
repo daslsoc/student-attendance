@@ -3,12 +3,17 @@
 # PR per ecosystem so CI runs once; majors arrive as individual PRs (peer-locked
 # npm families are grouped so they can actually install).
 # Ecosystem blocks are appended by rollout.sh based on what the repo contains.
+# cooldown: new releases wait 7 days (majors 14) before Dependabot proposes them; most
+# npm/composer supply-chain attacks are caught and yanked within days. Security updates skip it.
 version: 2
 updates:
   - package-ecosystem: composer
     directory: /
     schedule:
       interval: weekly
+    cooldown:
+      default-days: 7
+      semver-major-days: 14
     groups:
       composer-minor-patch:
         update-types: [minor, patch]
@@ -16,6 +21,9 @@ updates:
     directory: /
     schedule:
       interval: weekly
+    cooldown:
+      default-days: 7
+      semver-major-days: 14
     groups:
       # Peer-locked families: their majors must land in ONE PR or `npm ci`
       # fails with ERESOLVE (vitest 5 needs @vitest/coverage-v8 5, fullcalendar
@@ -41,3 +49,5 @@ updates:
     directory: /
     schedule:
       interval: weekly
+    cooldown:
+      default-days: 7
