@@ -86,6 +86,28 @@ class MergeStudents extends Command
         $oldStudent = Student::find($old);
         $newStudent = Student::find($new);
 
+        $precheck = $this->precheck($old, $new, $oldStudent, $newStudent);
+        if ($precheck !== null) {
+            return $precheck;
+        }
+
+        try {
+            DB::transaction(fn () => $this->applyMerge($old, $new, $oldStudent, $newStudent, $archives, $dryRun));
+        } catch (\Throwable $e) {
+            $this->error("#{$old} -> #{$new}: failed, rolled back — {$e->getMessage()}");
+
+            return false;
+        }
+
+        return true;
+    }
+
+    /**
+     * The cases where there is nothing to merge (true) or the merge must be
+     * refused (false); null means go ahead.
+     */
+    private function precheck(string $old, string $new, ?Student $oldStudent, ?Student $newStudent): ?bool
+    {
         if (! $oldStudent && ! $newStudent) {
             $this->warn("#{$old} -> #{$new}: neither record exists; nothing to do.");
 
@@ -106,53 +128,61 @@ class MergeStudents extends Command
             return false;
         }
 
+        return null;
+    }
+
+    /** The merge itself; runs inside the pair's transaction. */
+    private function applyMerge(string $old, string $new, Student $oldStudent, ?Student $newStudent, array $archives, bool $dryRun): void
+    {
         $label = "{$oldStudent->first_name} {$oldStudent->last_name}";
 
-        try {
-            DB::transaction(function () use ($old, $new, $oldStudent, $newStudent, $archives, $dryRun, $label) {
-                // No NEW record yet: this is a plain renumber. Create NEW as a
-                // copy so the repoint below has a valid target, then OLD is
-                // removed at the end like any merge.
-                if (! $newStudent) {
-                    if ($dryRun) {
-                        $this->line("  would create #{$new} ({$label}) and renumber #{$old} onto it");
-                    } else {
-                        Student::create([
-                            'student_number' => $new,
-                            'first_name' => $oldStudent->first_name,
-                            'last_name' => $oldStudent->last_name,
-                        ]);
-                    }
-                }
-
-                $summary = [];
-
-                foreach ($this->tables as $table => $dupKey) {
-                    [$moved, $dropped] = $this->repoint($table, $dupKey, $old, $new, $dryRun);
-                    $summary[] = "{$table}: +{$moved}".($dropped ? " (-{$dropped} dup)" : '');
-                }
-
-                foreach ($archives as $table) {
-                    [$moved, $dropped] = $this->repoint($table, ['subject_id', 'class_id', 'date'], $old, $new, $dryRun);
-                    if ($moved || $dropped) {
-                        $summary[] = "{$table}: +{$moved}".($dropped ? " (-{$dropped} dup)" : '');
-                    }
-                }
-
-                if (! $dryRun) {
-                    Student::where('student_number', $old)->delete();
-                }
-
-                $verb = $dryRun ? 'WOULD MERGE' : 'merged';
-                $this->info("{$verb} #{$old} -> #{$new} ({$label}): ".implode(', ', $summary).'; removed #'.$old);
-            });
-        } catch (\Throwable $e) {
-            $this->error("#{$old} -> #{$new}: failed, rolled back — {$e->getMessage()}");
-
-            return false;
+        // No NEW record yet: this is a plain renumber. Create NEW as a copy so
+        // the repoint below has a valid target, then OLD is removed at the end
+        // like any merge.
+        if (! $newStudent) {
+            $this->createTarget($old, $new, $oldStudent, $label, $dryRun);
         }
 
-        return true;
+        $summary = [];
+
+        foreach ($this->tables as $table => $dupKey) {
+            [$moved, $dropped] = $this->repoint($table, $dupKey, $old, $new, $dryRun);
+            $summary[] = $this->describe($table, $moved, $dropped);
+        }
+
+        foreach ($archives as $table) {
+            [$moved, $dropped] = $this->repoint($table, ['subject_id', 'class_id', 'date'], $old, $new, $dryRun);
+            if ($moved || $dropped) {
+                $summary[] = $this->describe($table, $moved, $dropped);
+            }
+        }
+
+        if (! $dryRun) {
+            Student::where('student_number', $old)->delete();
+        }
+
+        $verb = $dryRun ? 'WOULD MERGE' : 'merged';
+        $this->info("{$verb} #{$old} -> #{$new} ({$label}): ".implode(', ', $summary).'; removed #'.$old);
+    }
+
+    private function createTarget(string $old, string $new, Student $oldStudent, string $label, bool $dryRun): void
+    {
+        if ($dryRun) {
+            $this->line("  would create #{$new} ({$label}) and renumber #{$old} onto it");
+
+            return;
+        }
+
+        Student::create([
+            'student_number' => $new,
+            'first_name' => $oldStudent->first_name,
+            'last_name' => $oldStudent->last_name,
+        ]);
+    }
+
+    private function describe(string $table, int $moved, int $dropped): string
+    {
+        return "{$table}: +{$moved}".($dropped ? " (-{$dropped} dup)" : '');
     }
 
     /**
