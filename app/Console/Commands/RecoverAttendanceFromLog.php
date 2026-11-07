@@ -63,62 +63,8 @@ class RecoverAttendanceFromLog extends Command
         $since = $this->option('since') ? Carbon::parse($this->option('since')) : null;
         $until = $this->option('until') ? Carbon::parse($this->option('until')) : null;
 
-        // Pass 1: pull every "Attendance deleted" entry inside the time window,
-        // tallying how many happened in each exact second (the burst detector).
-        $entries = [];
-        $perSecond = [];
-        $parsed = 0;
-
-        $handle = fopen($path, 'r');
-        while (($line = fgets($handle)) !== false) {
-            if (! str_contains($line, 'Attendance deleted')) {
-                continue;
-            }
-            if (! preg_match('/^\[(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2})\].*Attendance deleted (\{.*\})\s*$/', $line, $m)) {
-                continue;
-            }
-
-            $when = Carbon::createFromFormat('Y-m-d H:i:s', $m[1]);
-            $data = json_decode($m[2], true);
-            if (! is_array($data) || ! isset($data['date'], $data['subject_id'], $data['class_id'], $data['student_number'])) {
-                continue;
-            }
-
-            $parsed++;
-            if ($since && $when->lt($since)) {
-                continue;
-            }
-            if ($until && $when->gt($until)) {
-                continue;
-            }
-
-            $second = $m[1];
-            $perSecond[$second] = ($perSecond[$second] ?? 0) + 1;
-            $entries[] = ['second' => $second, 'data' => $data];
-        }
-        fclose($handle);
-
-        // Pass 2: keep entries from a big-enough burst, de-duplicated to one per
-        // (subject, class, student, date) — a row may have been deleted more than
-        // once over the log's life; we only need to rebuild it once.
-        $candidates = [];
-        $droppedSmallCluster = 0;
-        foreach ($entries as $e) {
-            if ($perSecond[$e['second']] < $minCluster) {
-                $droppedSmallCluster++;
-
-                continue;
-            }
-            $d = $e['data'];
-            $key = $d['subject_id'].'|'.$d['class_id'].'|'.$d['student_number'].'|'.Carbon::parse($d['date'])->toDateString();
-            $candidates[$key] ??= [
-                'date' => Carbon::parse($d['date'])->toDateString(),
-                'subject_id' => (int) $d['subject_id'],
-                'class_id' => (int) $d['class_id'],
-                'student_number' => (string) $d['student_number'],
-                'teacher_id' => $d['teacher_id'] ?? null,
-            ];
-        }
+        [$entries, $perSecond, $parsed] = $this->readDeletions($path, $since, $until);
+        [$candidates, $droppedSmallCluster] = $this->candidatesFrom($entries, $perSecond, $minCluster);
 
         $this->info(sprintf(
             'Parsed %d deleted-row log entries; %d in window; %d after the min-cluster=%d filter; %d unique rows to consider.',
@@ -131,50 +77,7 @@ class RecoverAttendanceFromLog extends Command
             return self::SUCCESS;
         }
 
-        // Reference caches so we never insert a row whose student / subject /
-        // class / teacher no longer exists — teacher_id is a NOT-NULL FK, so a
-        // stale one would fail the whole insert batch.
-        $students = Student::pluck('student_number')->flip();
-        $subjects = Subject::pluck('id')->flip();
-        $classes = ClassModel::pluck('id')->flip();
-        $teachers = User::pluck('id')->flip();
-
-        $toInsert = [];
-        $skippedExisting = 0;
-        $skippedMissingRef = 0;
-        $now = now();
-
-        foreach ($candidates as $c) {
-            if (! isset($students[$c['student_number']], $subjects[$c['subject_id']], $classes[$c['class_id']])
-                || $c['teacher_id'] === null
-                || ! isset($teachers[$c['teacher_id']])) {
-                $skippedMissingRef++;
-
-                continue;
-            }
-
-            $exists = DB::table('attendances')
-                ->where('subject_id', $c['subject_id'])
-                ->where('class_id', $c['class_id'])
-                ->where('student_number', $c['student_number'])
-                ->whereDate('date', $c['date'])
-                ->exists();
-            if ($exists) {
-                $skippedExisting++;
-
-                continue;
-            }
-
-            $toInsert[] = [
-                'date' => $c['date'],
-                'subject_id' => $c['subject_id'],
-                'class_id' => $c['class_id'],
-                'student_number' => $c['student_number'],
-                'teacher_id' => $c['teacher_id'],
-                'created_at' => $now,
-                'updated_at' => $now,
-            ];
-        }
+        [$toInsert, $skippedExisting, $skippedMissingRef] = $this->rowsToInsert($candidates);
 
         $this->table(
             ['Would rebuild', 'Already present (skipped)', 'Missing student/subject/class (skipped)'],
@@ -202,5 +105,154 @@ class RecoverAttendanceFromLog extends Command
         $this->info(sprintf('Rebuilt %d attendance row(s).', count($toInsert)));
 
         return self::SUCCESS;
+    }
+
+    /**
+     * Pass 1: pull every "Attendance deleted" entry inside the time window,
+     * tallying how many happened in each exact second (the burst detector).
+     *
+     * @return array{0: list<array{second: string, data: array}>, 1: array<string, int>, 2: int}
+     */
+    private function readDeletions(string $path, ?Carbon $since, ?Carbon $until): array
+    {
+        $entries = [];
+        $perSecond = [];
+        $parsed = 0;
+
+        $handle = fopen($path, 'r');
+        while (($line = fgets($handle)) !== false) {
+            $entry = $this->parseLine($line);
+            if ($entry === null) {
+                continue;
+            }
+
+            $parsed++;
+            if (! $this->inWindow($entry['when'], $since, $until)) {
+                continue;
+            }
+
+            $second = $entry['second'];
+            $perSecond[$second] = ($perSecond[$second] ?? 0) + 1;
+            $entries[] = ['second' => $second, 'data' => $entry['data']];
+        }
+        fclose($handle);
+
+        return [$entries, $perSecond, $parsed];
+    }
+
+    /**
+     * One log line -> its deletion entry, or null when the line is not a
+     * well-formed "Attendance deleted" record.
+     *
+     * @return array{second: string, when: Carbon, data: array}|null
+     */
+    private function parseLine(string $line): ?array
+    {
+        if (! str_contains($line, 'Attendance deleted')) {
+            return null;
+        }
+        if (! preg_match('/^\[(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2})\].*Attendance deleted (\{.*\})\s*$/', $line, $m)) {
+            return null;
+        }
+
+        $data = json_decode($m[2], true);
+        if (! is_array($data) || ! isset($data['date'], $data['subject_id'], $data['class_id'], $data['student_number'])) {
+            return null;
+        }
+
+        return ['second' => $m[1], 'when' => Carbon::createFromFormat('Y-m-d H:i:s', $m[1]), 'data' => $data];
+    }
+
+    private function inWindow(Carbon $when, ?Carbon $since, ?Carbon $until): bool
+    {
+        return ! ($since && $when->lt($since)) && ! ($until && $when->gt($until));
+    }
+
+    /**
+     * Pass 2: keep entries from a big-enough burst, de-duplicated to one per
+     * (subject, class, student, date) — a row may have been deleted more than
+     * once over the log's life; we only need to rebuild it once.
+     *
+     * @return array{0: array<string, array>, 1: int}
+     */
+    private function candidatesFrom(array $entries, array $perSecond, int $minCluster): array
+    {
+        $candidates = [];
+        $droppedSmallCluster = 0;
+        foreach ($entries as $e) {
+            if ($perSecond[$e['second']] < $minCluster) {
+                $droppedSmallCluster++;
+
+                continue;
+            }
+            $d = $e['data'];
+            $date = Carbon::parse($d['date'])->toDateString();
+            $key = $d['subject_id'].'|'.$d['class_id'].'|'.$d['student_number'].'|'.$date;
+            $candidates[$key] ??= [
+                'date' => $date,
+                'subject_id' => (int) $d['subject_id'],
+                'class_id' => (int) $d['class_id'],
+                'student_number' => (string) $d['student_number'],
+                'teacher_id' => $d['teacher_id'] ?? null,
+            ];
+        }
+
+        return [$candidates, $droppedSmallCluster];
+    }
+
+    /**
+     * Candidates -> rows to insert, skipping rows that already exist and rows
+     * whose student / subject / class / teacher no longer exists (teacher_id
+     * is a NOT-NULL FK, so a stale one would fail the whole insert batch).
+     *
+     * @return array{0: list<array>, 1: int, 2: int}
+     */
+    private function rowsToInsert(array $candidates): array
+    {
+        $refs = [
+            'students' => Student::pluck('student_number')->flip(),
+            'subjects' => Subject::pluck('id')->flip(),
+            'classes' => ClassModel::pluck('id')->flip(),
+            'teachers' => User::pluck('id')->flip(),
+        ];
+
+        $toInsert = [];
+        $skippedExisting = 0;
+        $skippedMissingRef = 0;
+        $now = now();
+
+        foreach ($candidates as $c) {
+            if (! $this->refsExist($c, $refs)) {
+                $skippedMissingRef++;
+
+                continue;
+            }
+            if ($this->alreadyPresent($c)) {
+                $skippedExisting++;
+
+                continue;
+            }
+
+            $toInsert[] = $c + ['created_at' => $now, 'updated_at' => $now];
+        }
+
+        return [$toInsert, $skippedExisting, $skippedMissingRef];
+    }
+
+    private function refsExist(array $c, array $refs): bool
+    {
+        return isset($refs['students'][$c['student_number']], $refs['subjects'][$c['subject_id']], $refs['classes'][$c['class_id']])
+            && $c['teacher_id'] !== null
+            && isset($refs['teachers'][$c['teacher_id']]);
+    }
+
+    private function alreadyPresent(array $c): bool
+    {
+        return DB::table('attendances')
+            ->where('subject_id', $c['subject_id'])
+            ->where('class_id', $c['class_id'])
+            ->where('student_number', $c['student_number'])
+            ->whereDate('date', $c['date'])
+            ->exists();
     }
 }
